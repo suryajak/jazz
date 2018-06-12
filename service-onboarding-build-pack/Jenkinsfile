@@ -98,6 +98,17 @@ node  {
 						service_template = 'static-website-template'
 						break
 
+					case "vas":
+						if (service_config['runtime'] == "nodejs") {
+							service_template = "alexa-template-nodejs"
+						}
+						else if (service_config['runtime'] == "python") {
+							service_template = 'alexa-template-python'
+						}
+						else if (service_config['runtime'] == "java") {
+							service_template = 'alexa-template-java'
+						}
+						break
 				}
 
 			} else {
