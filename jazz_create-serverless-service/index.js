@@ -292,6 +292,12 @@ var getServiceData = (service_creation_data, authToken, configData) => {
             }
         }
 
+        if (service_creation_data.service_type === "vas") {
+            serviceMetadataObj.invocation = service_creation_data.invocation;
+            serviceMetadataObj.intent = service_creation_data.intent;
+            serviceMetadataObj.utterance = service_creation_data.utterance;
+        }
+
         inputs.METADATA = serviceMetadataObj;
         serviceDataObject = inputs;
         resolve(inputs);
