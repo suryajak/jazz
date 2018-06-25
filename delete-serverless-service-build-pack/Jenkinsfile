@@ -126,6 +126,9 @@ node {
 				} else {
 					cloudfrontEnabled = "false"
 				}
+			} else if (fileExists('build.vas')) {
+				flowType = "VAS"
+				loadServerlessConfig()
 			} else {
 				error "Invalid project configuration"
 			}
@@ -165,6 +168,31 @@ node {
 				break
 
 			case "LAMBDA":
+				stage('Undeploy Service') {
+					updateServiceNameConfig()
+
+					for (_envId in environmentIds) {
+						current_environment_id = _envId
+						try {
+							def branch = environmentMetadataLoader.getEnvironmentBranchName(_envId)
+							if (branch && branch != 'NA') {
+								events.setBranch(branch)
+								branch = 'NA'
+							}
+							events.setEnvironment(_envId)
+							events.sendStartedEvent('DELETE_ENVIRONMENT', "Environment cleanup for " + _envId + " started", null, _envId)
+							echo 'undeploying function for environment: '+ _envId
+							unDeployService(_envId)
+							events.sendCompletedEvent('DELETE_ENVIRONMENT', "Environment cleanup for " + _envId + " completed", null, _envId)
+						} catch (ex) {
+							events.sendFailureEvent('DELETE_ENVIRONMENT', "Environment cleanup for " + _envId + " failed! " + ex.getMessage(), null, _envId)
+							error "Environment cleanup for " + _envId + " failed! " + ex.getMessage()
+						}
+					}
+				}
+				break
+
+			case "VAS":
 				stage('Undeploy Service') {
 					updateServiceNameConfig()
 
