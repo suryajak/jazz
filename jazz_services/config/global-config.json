@@ -131,6 +131,14 @@
         {
             "type": "website",
             "fields": []
+        },
+        {
+            "type": "vas",
+            "fields": [
+                {
+                    "key": "runtime"
+                }
+            ]
         }
     ]
 }
