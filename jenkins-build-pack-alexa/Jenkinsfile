@@ -137,7 +137,7 @@ node()  {
 		error "Request Id Generation failed"
 	}
 
-	events.sendStartedEvent('CREATE_DEPLOYMENT', 'Function deployment started', environmentDeploymentMetadata.generateDeploymentMap("started", environment_logical_id, gitCommitHash), environment_logical_id)
+	events.sendStartedEvent('CREATE_DEPLOYMENT', 'Alexa deployment started', environmentDeploymentMetadata.generateDeploymentMap("started", environment_logical_id, gitCommitHash), environment_logical_id)
 
 	dir(repo_name){
 		loadServerlessConfig(runtime, isEventSchdld, isScheduleEnabled, isEc2EventEnabled, isS3EventEnabled, isStreamEnabled, isDynamoDbEnabled)
@@ -216,12 +216,30 @@ node()  {
 					lambdaARN = getLambdaARN(stackName)
 					events.sendCompletedEvent('CREATE_ASSET', null, generateAssetMap("aws", lambdaARN, config["type"], config['created_by']), environment_logical_id);
 					echo "lambdaARN: ${lambdaARN}"
+
+					sh "sed -i -- 's/{fnArn}/${lambdaARN}/g' ./skill.json"
+					sh "cat skill.json"
+					sh "cat model.json"
+					
+					def ask_result = sh(
+			                script: "ask api update-skill -s amzn1.ask.skill.8b89bc0d-8708-4ce1-8985-ef2df2fd8971 -f skill.json",
+			                returnStdout: true
+		                ).trim()
+		                
+		            echo "skill update result ${ask_result}"
+					
+					ask_result = sh(
+			                script: "ask api update-model -s amzn1.ask.skill.8b89bc0d-8708-4ce1-8985-ef2df2fd8971 -l en-us -f model.json",
+			                returnStdout: true
+		                ).trim()
+		                
+		            echo "skill update result ${ask_result}"
+
 					// reset Credentials
 					resetCredentials()
 					if (domain != "jazz") {
 						createSubscriptionFilters(stackName, configLoader.AWS.REGION, roleId);
 					}
-
 
 					if (domain && domain == "jazz") {
 						serviceConfigdata.setKinesisStream(config)
@@ -558,9 +576,6 @@ def setLambdaExecutionRole(role) {
 	sh "sed -i -- 's#DEFAULT_LAMBDA_EXE_ROLE#${role}#g' serverless.yml"
 }
 
-
-
-
 /**
  * For getting token to access catalog APIs.
  * Must be a service account which has access to all services
@@ -655,9 +670,6 @@ def send_status_email (config, build_status, email_content) {
 		}
 	}
 }
-
-
-
 
 /**
  *  Function to get arns of the triggers/events configured for the Lambda.
