@@ -48,6 +48,8 @@ node  {
         build_job = configLoader.WEBSITE.WEBSITE_BUILD_URI
      } else if (config['type']  == 'lambda' || config['type']  == 'function'){
         build_job = configLoader.LAMBDA.LAMBDA_BUILD_URI
+    } else if (config['type']  == 'vas'){
+        build_job = configLoader.ALEXA.BUILD_URI
     }
 
     def job_url = JenkinsLocationConfiguration.get().getUrl() + build_job
