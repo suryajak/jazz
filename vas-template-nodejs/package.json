@@ -1,0 +1,20 @@
+{
+  "name": "alexa-nodejs-template",
+  "version": "0.0.1",
+  "description": "Alexa Nodejs Template project",
+  "main": "index.js",
+  "private": true,
+  "author": [],
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "ask-sdk-core": "^2.0.5",
+    "ask-sdk-model": "^1.3.0",
+    "request": "*"
+  },
+  "devDependencies": {
+    "mocha": "^v3.0.0",
+    "chai": "^3.5.0"
+  }
+}

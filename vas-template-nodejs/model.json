@@ -1,0 +1,85 @@
+{
+    "interactionModel": {
+      "languageModel": {
+        "invocationName": "{invocationName}",
+        "intents": [
+          {
+            "name": "AMAZON.FallbackIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.CancelIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.HelpIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.StopIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.MoreIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.NavigateHomeIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.NavigateSettingsIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.NextIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.PageUpIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.PageDownIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.PreviousIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.ScrollRightIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.ScrollDownIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.ScrollLeftIntent",
+            "samples": []
+          },
+          {
+            "name": "AMAZON.ScrollUpIntent",
+            "samples": []
+          },
+          {
+            "name": "{IntentName}",
+            "samples": [
+              "{IntentSamples}"
+            ]
+          },
+          {
+            "name": "services",
+            "samples": [
+              "how many lambdas have been created using jazz",
+              "how many functions have been created using jazz",
+              "how many websites have been created using Jazz",
+              "how many services have been created in Jazz"
+            ]
+          }
+        ]
+      }
+    }
+}
+  

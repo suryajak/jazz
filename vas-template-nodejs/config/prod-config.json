@@ -1,0 +1,11 @@
+{
+  "ALEXA_MESSAGES": {
+    "SKILL_NAME": "Jazz Demo",
+    "WELCOME_MESSAGE": "Welcome to %s. I can help with %s. Now, what can I help you with?",
+    "WELCOME_REPROMPT": "For instructions on what you can say, please say help me.",
+    "HELP_MESSAGE": "You can ask questions such as, %s, or, you can say exit... Now, what can I help you with?",
+    "HELP_REPROMPT": "You can say things like, help with %s, or you can say exit... Now, what can I help you with?",
+    "STOP_MESSAGE": "Goodbye!"
+  },
+  "configKey":"ConfigValueProd"
+}

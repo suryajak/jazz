@@ -1,0 +1,50 @@
+{
+    "manifest": {
+      "publishingInformation": {
+        "locales": {
+          "en-US": {
+            "summary": "Jazz Serverless Demo",
+            "examplePhrases": [
+              "Alexa, open Jazz Serverless and give me count of users in Jazz",
+              "",
+              ""
+            ],
+            "keywords": [
+              "jazz",
+              "serverless"
+            ],
+            "name": "{SkillName}",
+            "smallIconUri": "https://s3.amazonaws.com/CAPS-SSE/echo_developer/f0b3/ca8b75ade60a446daad06c01b6239ba0/APP_ICON?versionId=PkLvSbujfo8wGYwGEj7Nnrx0Z2lNPq5p&AWSAccessKeyId=AKIAI3X6PUXD7CU5F5BQ&Expires=1528669004&Signature=X6IWMeA5m5UlyCCotBTBH%2BU7uxY%3D",
+            "description": "This is a demo skill that illustrates how folks who use the OSS product Jazz (https://github.com/tmobile/jazz) can quickly build alexa skills with the click of a button",
+            "largeIconUri": "https://s3.amazonaws.com/CAPS-SSE/echo_developer/d695/65cd4a7fe5554fc4a7766a63d7b54f52/APP_ICON_LARGE?versionId=pPNEQX7KdQVD.UkeDPqJ72hCbfP_RLgs&AWSAccessKeyId=AKIAI3X6PUXD7CU5F5BQ&Expires=1528669004&Signature=jXoI9D%2Fplvf5A59GBQPJE94q9AY%3D"
+          }
+        },
+        "isAvailableWorldwide": true,
+        "testingInstructions": "This is a demo app that is primarily being used to showcase the power of Alexa and how Jazz can enable that. Sample utterances are provided.",
+        "category": "BUSINESS_AND_FINANCE",
+        "distributionMode": "PUBLIC",
+        "distributionCountries": []
+      },
+      "apis": {
+        "custom": {
+          "endpoint": {
+            "uri": "{fnArn}"
+          },
+          "interfaces": [
+            {
+              "type": "RENDER_TEMPLATE"
+            }
+          ]
+        }
+      },
+      "manifestVersion": "1.0",
+      "privacyAndCompliance": {
+        "allowsPurchases": false,
+        "isExportCompliant": true,
+        "containsAds": false,
+        "isChildDirected": false,
+        "usesPersonalInfo": false
+      }
+    }
+  }
+  
