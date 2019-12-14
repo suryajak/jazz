@@ -1,13 +1,33 @@
 {
-  "REQUIRED_FIELDS": ["service", "domain", "environment", "end_time", "start_time", "interval", "statistics"],
-  "ASSET_REQUIRED_FIELDS": ["type", "asset_name", "statistics"],
-  "STATISTICS_TYPE": ["sum", "average", "maximum", "minimum", "samplecount"],
-  "CF_REGION": "{conf-region}",
+  "REQUIRED_FIELDS": [
+    "service",
+    "domain",
+    "environment",
+    "end_time",
+    "start_time",
+    "interval",
+    "statistics"
+  ],
+  "ASSET_REQUIRED_FIELDS": [
+    "type",
+    "asset_name",
+    "statistics"
+  ],
+  "STATISTICS_TYPE": [
+    "sum",
+    "average",
+    "maximum",
+    "minimum",
+    "samplecount",
+    "total"
+  ],
+  "CF_REGION": "{cf-region}",
   "APINAME": {
     "{conf-apikey-dev}": "{conf_stack_prefix}-dev",
     "{conf-apikey-stg}": "{conf_stack_prefix}-stg",
     "{conf-apikey-prod}": "{conf_stack_prefix}-prod"
   },
+  "STACK_PREFIX": "{conf_stack_prefix}",
   "APIGEE": {
     "STATISTICS_MAP": {
       "average": "avg",
@@ -23,5 +43,17 @@
       "604800": "week",
       "2592000": "month"
     }
-  }
+  },
+  "ASSET_TYPES": [
+    "lambda",
+    "apigateway",
+    "cloudfront",
+    "s3",
+    "dynamodb",
+    "sqs",
+    "kinesis_stream",
+    "apigee_proxy",
+    "dynamodb_stream",
+    "storage_account"
+  ]
 }

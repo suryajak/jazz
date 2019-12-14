@@ -15,21 +15,24 @@
 // =========================================================================
 
 /**
-    Helper functions for Metrics
-    @module: utils.js
-    @description: Defines functions like format the output as per metrics catalog.
-    @author:
-    @version: 1.0
-**/
+ Helper functions for Metrics
+ @module: utils.js
+ @description: Defines functions like format the output as per metrics catalog.
+ @author:
+ @version: 1.0
+ **/
 const parser = require('aws-arn-parser');
 const metricConfig = require("./metrics.json");
 const global_config = require("../config/global-config.json");
 const logger = require("../components/logger.js")();
 const AWS = require("aws-sdk");
+const Uuid = require("uuid/v4");
 
-function massageData(assetResults, eventBody) {
+function massageData(assetResults, eventBody, account) {
   var output_obj = {};
   output_obj = {
+    "accountId": account.accountId,
+    "region": account.region,
     "domain": eventBody.domain,
     "service": eventBody.service,
     "environment": eventBody.environment,
@@ -54,7 +57,7 @@ function assetData(results, assetItem) {
   };
 
   var metricsArr = results.map(key => {
-      return {
+    return {
       "metric_name": key.Label,
       "datapoints": key.Datapoints
     }
@@ -70,12 +73,14 @@ function getNameSpaceAndMetricDimensons(nameSpaceFrmAsset, provider) {
   var nameSpace = nameSpaceFrmAsset.toLowerCase();
   var namespacesList = metricConfig.namespaces;
 
-  if(!namespacesList[provider]) {
+  if (!namespacesList[provider]) {
     output_obj["isError"] = true;
     output_obj["message"] = `Provider not defined for namespace: ${nameSpace}`
     output_obj["nameSpace"] = `Invalid`;
     return output_obj;
   }
+
+  // mapping source: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/aws-services-cloudwatch-metrics.html
   var supportedNamespace = namespacesList[provider][nameSpace];
   let awsNameSpace;
   if (nameSpaceFrmAsset && supportedNamespace && provider === 'aws') {
@@ -86,7 +91,11 @@ function getNameSpaceAndMetricDimensons(nameSpaceFrmAsset, provider) {
       'aws/apigateway': 'AWS/ApiGateway',
       'aws/lambda': 'AWS/Lambda',
       'aws/cloudfront': 'AWS/CloudFront',
-      'aws/s3': 'AWS/S3'
+      'aws/s3': 'AWS/S3',
+      'aws/dynamodb': 'AWS/DynamoDB',
+      'aws/dynamodb_stream': 'AWS/DynamoDB',
+      'aws/sqs': 'AWS/SQS',
+      'aws/kinesis_stream': 'AWS/Kinesis'
     };
 
     if (Object.keys(nameSpaceList).indexOf(awsAddedNameSpace) > -1) {
@@ -94,7 +103,7 @@ function getNameSpaceAndMetricDimensons(nameSpaceFrmAsset, provider) {
     } else {
       output_obj["isError"] = true;
       output_obj["message"] = "AWS namespace not defined";
-      output_obj["nameSpace"] = "Invalid";
+      output_obj["nameSpace"] = "Invalid Namespace: " + awsAddedNameSpace;
     }
 
     output_obj["paramMetrics"] = paramMetrics;
@@ -123,13 +132,14 @@ function extractValueFromString(string, keyword) {
 
 function getApiName(string) {
   var value;
-  if (Object.keys(global_config.APINAME).indexOf(string) > -1) {
-    value = global_config.APINAME[string];
+  if( string == "stg"){
+    value = global_config.STACK_PREFIX + "-stg"
+  } else if( string == "prod"){
+    value = global_config.STACK_PREFIX + "-prod"
   } else {
-    value = "*"
+    value = global_config.STACK_PREFIX + "-dev"
   }
   return value;
-
 };
 
 function getAssetsObj(assetsArray, userStatistics) {
@@ -143,8 +153,9 @@ function getAssetsObj(assetsArray, userStatistics) {
   }
   assetsArray.forEach((asset) => {
 
+
     var assetType = asset.asset_type;
-    if(!namespaces[asset.provider]) {
+    if (!namespaces[asset.provider]) {
       newAssetArr.push({
         "message": `Provider not defined for the asset: ${asset.asset_type}`,
         "isError": true
@@ -173,20 +184,17 @@ function getAssetsObj(assetsArray, userStatistics) {
         "provider": asset.provider,
         "type": assetType,
         "asset_name": dimensionObj,
-        "statistics": userStatistics
+        "statistics": userStatistics,
+        "provider": asset.provider,
+        "metrics": metricNamespace.metrics
       };
       assetObj = updateNewAssetObj(newAssetObj, asset);
       newAssetArr.push(assetObj);
-    } else if (assetType) {
+    } else {
       // type not supported
       newAssetArr.push({
-        "message": `Metric not supported for asset type ${assetType}`,
-        "isError": true
-      });
-    } else {
-      // type not found
-      newAssetArr.push({
-        "message": `Asset type not found `,
+        "message": `Metric not supported for asset type: ${assetType}`,
+        "provider": asset.provider,
         "isError": true
       });
     }
@@ -201,13 +209,16 @@ function updateNewAssetObj(newAssetObj, asset) {
     case "aws":
       newAssetObj = updateAWSAsset(newAssetObj, asset);
       break;
+    case "azure":
+      newAssetObj = updateAZAsset(newAssetObj, asset);
+      break;
     case "gcp":
       newAssetObj = updateApigeeAsset(newAssetObj, asset);
       break;
     default:
       newAssetObj = {
         "isError": true,
-        "message": "Metric not supported for asset type " + assetType
+        "message": "Metric not supported for asset type: " + assetType
       }
   }
   return newAssetObj;
@@ -232,13 +243,52 @@ function updateAWSAsset(newAssetObj, asset) {
     case "cloudfront":
       newAssetObj = updateCloudfrontAsset(newAssetObj, relativeId);
       break;
+
+    case "dynamodb":
+      newAssetObj = updateDynamodbAsset(newAssetObj, relativeId);
+      break;
+
+    case "dynamodb_stream":
+      newAssetObj = updateDynamodbStreamAsset(newAssetObj, relativeId, arnString);
+      break;
+
+    case "sqs":
+      newAssetObj = updateSqsAsset(newAssetObj, relativeId);
+      break;
+
+    case "kinesis_stream":
+      newAssetObj = updateKinesisAsset(newAssetObj, relativeId);
+      break;
+
     default:
       newAssetObj = {
-        "message": "Metric not supported for asset type " + assetType,
+        "message": "Metric not supported for asset type: " + assetType,
         "isError": true
       }
-    }
-    return newAssetObj;
+  }
+  return newAssetObj;
+}
+
+function updateAZAsset(newAssetObj, asset) {
+  var arnString = asset.provider_id, assetType = asset.asset_type, assetEnvironment = asset.environment;
+  var arnParsedObj = parser(arnString);
+  var relativeId = arnParsedObj.relativeId;
+
+  switch (assetType) {
+    case "storage_account":
+      asset.metrics = newAssetObj.metrics;
+      newAssetObj = asset;
+      break;
+    case "apigateway":
+      asset.metrics = newAssetObj.metrics;
+      newAssetObj = asset;
+      break;
+    default:
+      newAssetObj = {
+        "isError": "Metric not supported for asset type: " + assetType
+      }
+  }
+  return newAssetObj;
 }
 
 function updateApigeeAsset(newAssetObj, asset) {
@@ -247,7 +297,7 @@ function updateApigeeAsset(newAssetObj, asset) {
   newAssetObj.asset_name.Method = providerArr[2];
   let resourceValue = "/" + providerArr[3];
   if (providerArr[4]) {
-      resourceValue += "/" + providerArr[4];
+    resourceValue += "/" + providerArr[4];
   }
   newAssetObj.asset_name.Resource = resourceValue;
   newAssetObj.asset_name.apiproxy = `${asset.domain}-${asset.service}-${asset.environment}`;
@@ -262,15 +312,46 @@ function updateLambdaAsset(newAssetObj, relativeId, arnString) {
   return newAssetObj;
 }
 
+function updateDynamodbAsset(newAssetObj, relativeId) {
+  let parts = relativeId.split("/");
+  newAssetObj.asset_name.TableName = parts[1];
+  newAssetObj.asset_name.Operation = "PutItem";
+  return newAssetObj;
+}
+
+function updateDynamodbStreamAsset(newAssetObj, relativeId, arnString) {
+  if (relativeId.indexOf("stream") !== 1) {
+    relativeId = arnString.substring(arnString.indexOf(relativeId), arnString.length);
+    let parts = relativeId.split("/");
+    newAssetObj.asset_name.TableName = parts[1];
+    newAssetObj.asset_name.Operation = "GetRecords";
+    newAssetObj.asset_name.StreamLabel = parts[3];
+  }
+  return newAssetObj;
+}
+
+function updateSqsAsset(newAssetObj, relativeId) {
+  let parts = relativeId.split("/");
+  newAssetObj.asset_name.QueueName = parts[0];
+  return newAssetObj;
+}
+
+function updateKinesisAsset(newAssetObj, relativeId) {
+  let parts = relativeId.split("/");
+  newAssetObj.asset_name.StreamName = parts[1];
+  return newAssetObj;
+}
+
 function updateApigatewayAsset(newAssetObj, relativeId, assetEnvironment) {
 
   var parts = relativeId.split("/");
 
-  var apiId = parts[0];
-  newAssetObj.asset_name.ApiName = getApiName(apiId);
+  //var apiId = parts[0];
 
   var stgValue = parts[1] === '*' ? assetEnvironment : parts[1];
   newAssetObj.asset_name.Stage = stgValue || "*";
+
+  newAssetObj.asset_name.ApiName = getApiName(stgValue);
 
   var methodValue = parts[2];
   newAssetObj.asset_name.Method = methodValue;
@@ -287,6 +368,7 @@ function updateS3Asset(newAssetObj, relativeId) {
   var bucketValue = parts[0];
   newAssetObj.asset_name.BucketName = bucketValue;
   newAssetObj.asset_name.StorageType = "StandardStorage";
+  newAssetObj.asset_name.FilterId = "EntireBucket";
   return newAssetObj;
 }
 
@@ -298,19 +380,69 @@ function updateCloudfrontAsset(newAssetObj, relativeId) {
   return newAssetObj;
 }
 
-function getCloudWatch() {
-  var cloudwatch = new AWS.CloudWatch({
-    apiVersion: '2010-08-01'
-  });
+function getCloudWatch(tempcreds, region) {
+  tempcreds.apiVersion = '2010-08-01';
+  tempcreds.region = region;
+  var cloudwatch = new AWS.CloudWatch(tempcreds);
   return cloudwatch;
 }
 
-function getCloudfrontCloudWatch() {
-  var cloudwatch = new AWS.CloudWatch({
-    apiVersion: '2010-08-01',
-    region: global_config.CF_REGION
-  });
+function getCloudfrontCloudWatch(tempcreds) {
+  tempcreds.apiVersion = '2010-08-01';
+  tempcreds.region = global_config.CF_REGION;
+  var cloudwatch = new AWS.CloudWatch(tempcreds);
   return cloudwatch;
+}
+function checkIsPrimary(accountId, jsonConfig) {
+  var data = jsonConfig.config.AWS.ACCOUNTS;
+  var index = data.findIndex(x => x.ACCOUNTID == accountId);
+  if (data[index].PRIMARY) {
+    return data[index].PRIMARY;
+  } else {
+    return false;
+  }
+}
+
+function getRolePlatformService(accountId, jsonConfig) {
+  var data = jsonConfig.config.AWS.ACCOUNTS;
+  var index = data.findIndex(x => x.ACCOUNTID == accountId);
+  return data[index].IAM.PLATFORMSERVICES_ROLEID;
+}
+
+function AssumeRole(accountID, configJson) {
+  var isPrimary = checkIsPrimary(accountID, configJson);
+  var roleArn = getRolePlatformService(accountID, configJson);
+  var accessparams;
+  return new Promise((resolve, reject) => {
+    if (isPrimary) {
+      accessparams = {};
+      resolve(accessparams)
+    } else {
+      const sts = new AWS.STS({ region: process.env.REGION });
+      const roleSessionName = Uuid();
+      const params = {
+        RoleArn: roleArn,
+        RoleSessionName: roleSessionName,
+        DurationSeconds: 3600,
+      };
+      sts.assumeRole(params, (err, data) => {
+        if (err) {
+          reject({
+            "result": "serverError",
+            "message": "Unknown internal error occurred"
+          })
+        } else {
+          logger.debug("Temporary Credentials are : ", JSON.stringify(data));
+          accessparams = {
+            accessKeyId: data.Credentials.AccessKeyId,
+            secretAccessKey: data.Credentials.SecretAccessKey,
+            sessionToken: data.Credentials.SessionToken,
+          };
+          resolve(accessparams)
+        }
+      })
+    }
+  });
 }
 
 module.exports = {
@@ -319,5 +451,6 @@ module.exports = {
   getNameSpaceAndMetricDimensons,
   getAssetsObj,
   getCloudWatch,
-  getCloudfrontCloudWatch
+  getCloudfrontCloudWatch,
+  AssumeRole
 };

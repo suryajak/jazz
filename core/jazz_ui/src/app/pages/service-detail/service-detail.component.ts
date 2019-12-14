@@ -13,7 +13,8 @@ import { ToasterService } from 'angular2-toaster';
 import { BarGraphComponent } from '../../secondary-components/bar-graph/bar-graph.component';
 import { RequestService, DataCacheService, MessageService, AuthenticationService } from '../../core/services/index';
 import { ServiceMetricsComponent } from '../service-metrics/service-metrics.component';
-import { environment } from './../../../environments/environment';
+import { environment as env_oss } from './../../../environments/environment.oss';
+
 
 @Component({
   selector: 'service-detail',
@@ -43,19 +44,21 @@ export class ServiceDetailComponent implements OnInit {
 
   @Output() deleteServiceStatus: EventEmitter<boolean> = new EventEmitter<boolean>();
   @ViewChild('selectedTabComponent') selectedTabComponent;
-  isENVavailable: boolean = true;
+  isEnvAvailable: boolean = false;
   disblebtn: boolean = true;
   ServiceName: string;
+  platfrom: string;
   deleteServiceVal: boolean;
   id: string;
   errMessage: string = '';
   isLoadingService: boolean = false;
   isLoading: boolean = false;
-  selectedTab = 0;
+  selectedTab = 'overview';
   selected: string = 'All';
   service: any = {};
   isGraphLoading: boolean = false;
   stageOverview: any = {};
+  provider: any;
   showPopUp: boolean = false;
   success: boolean = false;
   thisIndex: number = 0;
@@ -70,6 +73,9 @@ export class ServiceDetailComponent implements OnInit {
   test: any = "delete testing";
   disabled_tab: boolean = false;
   refreshTabClicked: boolean = false;
+  isAdminAccess: boolean = false;
+  currentUser: any = {}
+  isError403: boolean = false;
 
 
   private sub: any;
@@ -77,7 +83,7 @@ export class ServiceDetailComponent implements OnInit {
   private toastmessage: any;
 
   statusData = ['All', 'Active', 'Pending', 'Stopped'];
-  tabData = ['overview', 'access control', 'metrics', 'logs', 'cost'];
+  tabData = ['overview', 'access control', 'metrics', 'cost', 'logs'];
 
   breadcrumbs = []
 
@@ -102,10 +108,9 @@ export class ServiceDetailComponent implements OnInit {
       let returnObject = {
         id: service.id,
         name: service.service,
-        serviceType: service.type,
         runtime: service.runtime,
         status: service.status.replace('_', ' '),
-        description: service.description,
+        description: service.description || '',
         approvers: service.approvers,
         domain: service.domain,
         email: service.email,
@@ -115,8 +120,15 @@ export class ServiceDetailComponent implements OnInit {
         endpoints: service.endpoints,
         deployment_targets :  service.deployment_targets[service.type].S || service.deployment_targets[service.type],
         is_public_endpoint: service.is_public_endpoint,
-        created_by: service.created_by
+        created_by: service.created_by,
+        accountID: service.deployment_accounts[0].accountId,
+        region: service.deployment_accounts[0].region,
+        provider: service.deployment_accounts[0].provider
       }
+      if(service.type === 'sls-app'){
+        service.type = 'custom'
+      }
+      returnObject['serviceType'] = service.type
       if (service.metadata) {
         returnObject["create_cloudfront_url"] = service.metadata.create_cloudfront_url;
         returnObject["eventScheduleRate"] = service.metadata.eventScheduleRate;
@@ -135,6 +147,18 @@ export class ServiceDetailComponent implements OnInit {
         }
         if(service.metadata.event_source_sqs){
           returnObject["event_source_arn"] = service.metadata.event_source_sqs;
+        }
+        if(service.metadata.event_source_cosmosdb){
+          returnObject["event_source_arn"] = service.metadata.event_source_cosmosdb;
+        }
+        if(service.metadata.event_source_eventhub){
+          returnObject["event_source_arn"] = service.metadata.event_source_eventhub;
+        }
+        if(service.metadata.event_source_storageaccount){
+          returnObject["event_source_arn"] = service.metadata.event_source_storageaccount;
+        }
+        if(service.metadata.event_source_servicebusqueue){
+          returnObject["event_source_arn"] = service.metadata.event_source_servicebusqueue;
         }
       }
       if(typeof returnObject["event_source_arn"] == "object"){
@@ -162,7 +186,6 @@ export class ServiceDetailComponent implements OnInit {
       }
 
       this.service = this.processService(service);
-
       // Update breadcrumbs
       this.breadcrumbs = [
         {
@@ -170,8 +193,9 @@ export class ServiceDetailComponent implements OnInit {
           'link': ''
         }]
       this.isLoadingService = false;
-      if (service.status == 'deletion_completed' || service.status == 'deletion_started' || service.status == 'creation_started' || service.status == 'creation_failed')
+      if (service.status == 'deletion_completed' || service.status == 'deletion_started' || service.status == 'creation_started' || service.status == 'creation_failed' || (!service.repository && service.domain == 'jazz'))
         this.canDelete = false;
+
     } else {
       this.isLoadingService = false;
       let errorMessage = this.toastmessage.successMessage(service, "serviceDetail");
@@ -183,29 +207,41 @@ export class ServiceDetailComponent implements OnInit {
     let serviceType = this.service.type || this.service.serviceType;
     switch (serviceType) {
       case 'api':
-        this.tabData = ['overview', 'access control', 'metrics', 'cost', 'logs'];
+        this.tabData = ['overview', 'access control', 'metrics', 'logs', 'cost'];
         break;
       case 'website':
         this.tabData = ['overview', 'access control', 'metrics', 'cost'];
         break;
       case 'function':
-        this.tabData = ['overview', 'access control', 'metrics', 'cost', 'logs'];
+        this.tabData = ['overview', 'access control', 'metrics', 'logs', 'cost'];
         break;
     }
   }
 
   fetchService(id) {
     this.isLoadingService = true;
-    this.http.get('/jazz/services/' + id).subscribe(response => {
+    this.http.get('/jazz/services/' + id, null, id).subscribe(response => {
       let service = response.data;
+      this.isEnvAvailable = true;
+      this.provider = response.data.deployment_accounts[0].provider
       this.cache.set(id, service);
       this.onDataFetched(service);
       this.isGraphLoading = false;
       this.selectedTabComponent.refresh_env();
       this.setTabs();
+      if(service && service.policies && service.policies.length) {
+        service.policies.forEach(policy => {
+          if (policy.category === "manage" && policy.permission === "admin") {
+            this.setAdminAccess(true);
+          }
+        });
+      }
     }, (err) => {
-      if (err.status == "404") {
+      console.log("error here: ", err);
+      if (err.status === 404) {
         this.router.navigateByUrl('404');
+      } else if (err.status === 403) {
+        this.isError403 = true;
       }
       this.isLoadingService = false;
       let errorMessage = 'OOPS! something went wrong while fetching data';
@@ -237,7 +273,9 @@ export class ServiceDetailComponent implements OnInit {
   };
 
   env(event) {
-    if ((event != 'creation failed') && (event != 'creation started') && (event != 'deletion started') && (event != 'deletion completed')) {
+    if (!this.service.repository && this.service.domain == 'jazz') {
+      this.canDelete = false;
+    } else if ((event != 'creation failed') && (event != 'creation started') && (event != 'deletion started') && (event != 'deletion completed')) {
       this.canDelete = true;
     } else {
       this.canDelete = false;
@@ -292,7 +330,7 @@ export class ServiceDetailComponent implements OnInit {
 
   refreshTab() {
     this.refreshTabClicked = true;
-    if (this.selectedTab == 0) {
+    if (this.selectedTab == 'overview') {
       this.refreshServ();
     }
     else {
@@ -311,7 +349,7 @@ export class ServiceDetailComponent implements OnInit {
       "id": this.service.id
     };
     this.deleteServiceStatus.emit(this.deleteServiceVal);
-    this.subscription = this.http.post('/jazz/delete-serverless-service', payload)
+    this.subscription = this.http.post('/jazz/delete-serverless-service', payload, this.service.id)
       .subscribe(
         (Response) => {
           var update = {
@@ -373,7 +411,7 @@ export class ServiceDetailComponent implements OnInit {
 
 
   onServiceNameChange() {
-    
+
     if (this.ServiceName.toLowerCase() == this.service['name']) {
       this.disblebtn = false;
     }
@@ -401,8 +439,12 @@ export class ServiceDetailComponent implements OnInit {
     }, 3000);
   }
 
-  ngOnInit() {
+  setAdminAccess(access) {
+    this.isAdminAccess = access;
+  }
 
+  ngOnInit() {
+    this.currentUser = JSON.parse(localStorage.getItem('currentUser'));
     this.breadcrumbs = [
       {
         'name': this.service['name'],
@@ -416,6 +458,5 @@ export class ServiceDetailComponent implements OnInit {
   }
 
   ngOnChanges(x: any) {
-
   }
 }

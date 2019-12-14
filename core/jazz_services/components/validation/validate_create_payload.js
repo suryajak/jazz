@@ -1,6 +1,6 @@
 // =========================================================================
 // Copyright © 2017 T-Mobile USA, Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -83,11 +83,14 @@ module.exports = (service_data, onComplete) => {
             logger.info("Inside validateRemoveEmptyValues: ");
             validateUtils.validateRemoveEmptyValues(service_data, onComplete);
         },
+        validateProviderValue: function (onComplete) {
+            logger.info("Inside validateProviderValue");
+            validateUtils.validateProviderValue(service_data, onComplete);
+        },
         // Check if a service with same domain and service_name combination exists
         validateServiceExists: function (onComplete) {
-            getAllRecords = "true";
             var query = { service: service_data.service.toLowerCase(), domain: service_data.domain.toLowerCase() };
-            crud.getList(query, getAllRecords, function onServiceGet(error, data) {
+            crud.getList(query, null, function onServiceGet(error, data) {
                 if (error) {
                     onComplete(error);
                 } else {

@@ -3,10 +3,10 @@
     "aws": {
       "lambda": {
         "metrics": [{
-            "MetricName": "Invocations",
-            "Unit": "Count",
-            "Dimensions": ["FunctionName", "Resource", "Version", "Alias"]
-          },
+          "MetricName": "Invocations",
+          "Unit": "Count",
+          "Dimensions": ["FunctionName", "Resource", "Version", "Alias"]
+        },
           {
             "MetricName": "Errors",
             "Unit": "Count",
@@ -37,10 +37,10 @@
       },
       "apigateway": {
         "metrics": [{
-            "MetricName": "4XXError",
-            "Unit": "Count",
-            "Dimensions": ["ApiName", "Method", "Resource", "Stage"]
-          },
+          "MetricName": "4XXError",
+          "Unit": "Count",
+          "Dimensions": ["ApiName", "Method", "Resource", "Stage"]
+        },
           {
             "MetricName": "5XXError",
             "Unit": "Count",
@@ -78,24 +78,67 @@
         "metrics": [{
             "MetricName": "BucketSizeBytes",
             "Unit": "Bytes",
-            "Statistics": "Average",
-            "Dimensions": ["StorageType", "BucketName", "FilterId"]
+            "Dimensions": ["StorageType", "BucketName"]
           },
           {
             "MetricName": "NumberOfObjects",
             "Unit": "Count",
-            "Statistics": "Average",
-            "Dimensions": ["StorageType", "BucketName", "FilterId"]
+            "Dimensions": ["StorageType", "BucketName"]
+          },
+          {
+            "MetricName": "AllRequests",
+            "Unit": "Count",
+            "Dimensions": ["BucketName", "FilterId"]
+          },
+          {
+            "MetricName": "4xxErrors",
+            "Unit": "Count",
+            "Dimensions": ["BucketName", "FilterId"]
+          },
+          {
+            "MetricName": "5xxErrors",
+            "Unit": "Count",
+            "Dimensions": ["BucketName", "FilterId"]
+          },
+          {
+            "MetricName": "ListRequests",
+            "Unit": "Count",
+            "Dimensions": ["BucketName", "FilterId"]
+          },
+          {
+            "MetricName": "GetRequests",
+            "Unit": "Count",
+            "Dimensions": ["BucketName", "FilterId"]
+          },
+          {
+            "MetricName": "FirstByteLatency",
+            "Unit": "Milliseconds",
+            "Dimensions": ["BucketName", "FilterId"]
+          },
+          {
+            "MetricName": "TotalRequestLatency",
+            "Unit": "Milliseconds",
+            "Dimensions": ["BucketName", "FilterId"]
+          },
+          {
+            "MetricName": "BytesDownloaded",
+            "Unit": "Bytes",
+            "Dimensions": ["BucketName", "FilterId"]
+          },
+          {
+            "MetricName": "BytesUploaded",
+            "Unit": "Bytes",
+            "Dimensions": ["BucketName", "FilterId"]
           }
         ],
-        "dimensions": ["BucketName", "StorageType"]
+        "dimensions": ["BucketName", "StorageType", "FilterId"]
       },
       "cloudfront": {
         "metrics": [{
-            "MetricName": "Requests",
-            "Unit": "None",
-            "Dimensions": ["DistributionId", "Region"]
-          },
+          "MetricName": "Requests",
+          "Unit": "None",
+          "Dimensions": ["DistributionId", "Region"]
+        },
           {
             "MetricName": "BytesDownloaded",
             "Unit": "None",
@@ -123,6 +166,242 @@
           }
         ],
         "dimensions": ["DistributionId", "Region"]
+      },
+      "dynamodb": {
+        "metrics": [{
+            "MetricName": "ConsumedReadCapacityUnits",
+            "Unit": "Count",
+            "Dimensions": ["TableName"]
+          },
+          {
+            "MetricName": "ConsumedWriteCapacityUnits",
+            "Unit": "Count",
+            "Dimensions": ["TableName"]
+          },
+          {
+            "MetricName": "ProvisionedReadCapacityUnits",
+            "Unit": "Count",
+            "Dimensions": ["TableName"]
+          },
+          {
+            "MetricName": "ProvisionedWriteCapacityUnits",
+            "Unit": "Count",
+            "Dimensions": ["TableName"]
+          },
+          {
+            "MetricName": "ReturnedItemCount",
+            "Unit": "Count",
+            "Dimensions": ["Operation", "TableName"]
+          },
+          {
+            "MetricName": "ThrottledRequests",
+            "Unit": "Count",
+            "Dimensions": ["Operation", "TableName"]
+          }
+        ],
+        "dimensions": ["TableName", "Operation", "StreamLabel"]
+      },
+      "dynamodb_stream": {
+        "metrics": [{
+            "MetricName": "ReturnedBytes",
+            "Unit": "Bytes",
+            "Dimensions": ["Operation", "StreamLabel", "TableName"]
+          },
+          {
+            "MetricName": "ReturnedRecordsCount",
+            "Unit": "Count",
+            "Dimensions": ["Operation", "StreamLabel", "TableName"]
+          },
+          {
+            "MetricName": "SuccessfulRequestLatency",
+            "Unit": "Milliseconds",
+            "Dimensions": ["Operation", "StreamLabel", "TableName"]
+          }
+        ],
+        "dimensions": ["Operation", "StreamLabel", "TableName"]
+      },
+      "sqs": {
+        "metrics": [{
+            "MetricName": "ApproximateAgeOfOldestMessage",
+            "Unit": "Seconds",
+            "Dimensions": ["QueueName"]
+          },
+          {
+            "MetricName": "ApproximateNumberOfMessagesDelayed",
+            "Unit": "Count",
+            "Dimensions": ["QueueName"]
+          },
+          {
+            "MetricName": "ApproximateNumberOfMessagesNotVisible",
+            "Unit": "Count",
+            "Dimensions": ["QueueName"]
+          },
+          {
+            "MetricName": "ApproximateNumberOfMessagesVisible",
+            "Unit": "Count",
+            "Dimensions": ["QueueName"]
+          },
+          {
+            "MetricName": "NumberOfEmptyReceives",
+            "Unit": "Count",
+            "Dimensions": ["QueueName"]
+          },
+          {
+            "MetricName": "NumberOfMessagesDeleted",
+            "Unit": "Count",
+            "Dimensions": ["QueueName"]
+          },
+          {
+            "MetricName": "NumberOfMessagesReceived",
+            "Unit": "Count",
+            "Dimensions": ["QueueName"]
+          },
+          {
+            "MetricName": "NumberOfMessagesSent",
+            "Unit": "Count",
+            "Dimensions": ["QueueName"]
+          },
+          {
+            "MetricName": "SentMessageSize",
+            "Unit": "Bytes",
+            "Dimensions": ["QueueName"]
+          }
+        ],
+        "dimensions": ["QueueName"]
+      },
+      "kinesis_stream": {
+        "metrics": [{
+            "MetricName": "GetRecords.Bytes",
+            "Unit": "Bytes",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "GetRecords.IteratorAgeMilliseconds",
+            "Unit": "Milliseconds",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "GetRecords.Latency",
+            "Unit": "Milliseconds",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "GetRecords.Records",
+            "Unit": "Count",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "GetRecords.Success",
+            "Unit": "Count",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "IncomingBytes",
+            "Unit": "Bytes",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "IncomingRecords",
+            "Unit": "Count",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "PutRecord.Bytes",
+            "Unit": "Bytes",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "PutRecord.Latency",
+            "Unit": "Milliseconds",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "PutRecord.Success",
+            "Unit": "Count",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "ReadProvisionedThroughputExceeded",
+            "Unit": "Count",
+            "Dimensions": ["StreamName"]
+          },
+          {
+            "MetricName": "WriteProvisionedThroughputExceeded",
+            "Unit": "Count",
+            "Dimensions": ["StreamName"]
+          }
+        ],
+        "dimensions": ["StreamName"]
+      }
+    },
+    "azure":{
+      "storage_account": {
+        "metrics": [{
+          "MetricName": "Transactions",
+          "Unit": "Count",
+          "Dimensions": ["DistributionId", "Region"]
+        },
+          {
+            "MetricName": "Ingress",
+            "Unit": "Bytes",
+            "Dimensions": ["DistributionId", "Region"]
+          },
+          {
+            "MetricName": "Egress",
+            "Unit": "Bytes",
+            "Dimensions": ["DistributionId", "Region"]
+          },
+          {
+            "MetricName": "SuccessServerLatency",
+            "Unit": "MilliSeconds",
+            "Dimensions": ["DistributionId", "Region"]
+          },
+          {
+            "MetricName": "SuccessE2ELatency",
+            "Unit": "MilliSeconds",
+            "Dimensions": ["DistributionId", "Region"]
+          },
+          {
+            "MetricName": "Availability",
+            "Unit": "Percent",
+            "Dimensions": ["DistributionId", "Region"]
+          }
+        ],
+        "dimensions": ["DistributionId", "Region"]
+      },
+      "apigateway": {
+        "metrics": [{
+          "MetricName": "TotalRequests",
+          "Unit": "Count",
+          "Dimensions": ["DistributionId", "Region"]
+        },
+          {
+            "MetricName": "SuccessfulRequests",
+            "Unit": "Count",
+            "Dimensions": ["DistributionId", "Region"]
+          },
+          {
+            "MetricName": "UnauthorizedRequests",
+            "Unit": "Count",
+            "Dimensions": ["DistributionId", "Region"]
+          },
+          {
+            "MetricName": "FailedRequests",
+            "Unit": "Count",
+            "Dimensions": ["DistributionId", "Region"]
+          },
+          {
+            "MetricName": "OtherRequests",
+            "Unit": "Count",
+            "Dimensions": ["DistributionId", "Region"]
+          },
+          {
+            "MetricName": "Duration",
+            "Unit": "MilliSeconds",
+            "Dimensions": ["DistributionId", "Region"]
+          }
+        ],
+        "dimensions": ["DistributionId", "Region"]
       }
     },
     "gcp": {
@@ -133,122 +412,122 @@
           "Statistics": "Sum",
           "Unit": "Count"
         },
-        {
-          "Label": "Errors",
-          "MetricName": "is_error",
-          "Statistics": "Sum",
-          "Unit": "Count"
-        },
-        {
-          "Label": "Total Response Time",
-          "MetricName": "total_response_time",
-          "Statistics": "Avg",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Total Response Time",
-          "MetricName": "total_response_time",
-          "Statistics": "Max",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Total Response Time",
-          "MetricName": "total_response_time",
-          "Statistics": "Min",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Target Response Time",
-          "MetricName": "target_response_time",
-          "Statistics": "Avg",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Target Response Time",
-          "MetricName": "target_response_time",
-          "Statistics": "Max",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Target Response Time",
-          "MetricName": "target_response_time",
-          "Statistics": "Min",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Request Size",
-          "MetricName": "request_size",
-          "Statistics": "Avg",
-          "Unit": "Bytes"
-        },
-        {
-          "Label": "Request Size",
-          "MetricName": "request_size",
-          "Statistics": "Max",
-          "Unit": "Bytes"
-        },
-        {
-          "Label": "Request Size",
-          "MetricName": "request_size",
-          "Statistics": "Min",
-          "Unit": "Bytes"
-        },
-        {
-          "Label": "Response Size",
-          "MetricName": "response_size",
-          "Statistics": "Avg",
-          "Unit": "Bytes"
-        },
-        {
-          "Label": "Response Size",
-          "MetricName": "response_size",
-          "Statistics": "Max",
-          "Unit": "Bytes"
-        },
-        {
-          "Label": "Response Size",
-          "MetricName": "response_size",
-          "Statistics": "Min",
-          "Unit": "Bytes"
-        },
-        {
-          "Label": "Response Processing Latency",
-          "MetricName": "response_processing_latency",
-          "Statistics": "Avg",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Response Processing Latency",
-          "MetricName": "response_processing_latency",
-          "Statistics": "Max",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Response Processing Latency",
-          "MetricName": "response_processing_latency",
-          "Statistics": "Min",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Request Processing Latency",
-          "MetricName": "request_processing_latency",
-          "Statistics": "Avg",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Request Processing Latency",
-          "MetricName": "request_processing_latency",
-          "Statistics": "Max",
-          "Unit": "Milliseconds"
-        },
-        {
-          "Label": "Request Processing Latency",
-          "MetricName": "request_processing_latency",
-          "Statistics": "Min",
-          "Unit": "Milliseconds"
-        }
-      ],
-      "dimensions": ["apiproxy"]
+          {
+            "Label": "Errors",
+            "MetricName": "is_error",
+            "Statistics": "Sum",
+            "Unit": "Count"
+          },
+          {
+            "Label": "Total Response Time",
+            "MetricName": "total_response_time",
+            "Statistics": "Avg",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Total Response Time",
+            "MetricName": "total_response_time",
+            "Statistics": "Max",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Total Response Time",
+            "MetricName": "total_response_time",
+            "Statistics": "Min",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Target Response Time",
+            "MetricName": "target_response_time",
+            "Statistics": "Avg",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Target Response Time",
+            "MetricName": "target_response_time",
+            "Statistics": "Max",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Target Response Time",
+            "MetricName": "target_response_time",
+            "Statistics": "Min",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Request Size",
+            "MetricName": "request_size",
+            "Statistics": "Avg",
+            "Unit": "Bytes"
+          },
+          {
+            "Label": "Request Size",
+            "MetricName": "request_size",
+            "Statistics": "Max",
+            "Unit": "Bytes"
+          },
+          {
+            "Label": "Request Size",
+            "MetricName": "request_size",
+            "Statistics": "Min",
+            "Unit": "Bytes"
+          },
+          {
+            "Label": "Response Size",
+            "MetricName": "response_size",
+            "Statistics": "Avg",
+            "Unit": "Bytes"
+          },
+          {
+            "Label": "Response Size",
+            "MetricName": "response_size",
+            "Statistics": "Max",
+            "Unit": "Bytes"
+          },
+          {
+            "Label": "Response Size",
+            "MetricName": "response_size",
+            "Statistics": "Min",
+            "Unit": "Bytes"
+          },
+          {
+            "Label": "Response Processing Latency",
+            "MetricName": "response_processing_latency",
+            "Statistics": "Avg",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Response Processing Latency",
+            "MetricName": "response_processing_latency",
+            "Statistics": "Max",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Response Processing Latency",
+            "MetricName": "response_processing_latency",
+            "Statistics": "Min",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Request Processing Latency",
+            "MetricName": "request_processing_latency",
+            "Statistics": "Avg",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Request Processing Latency",
+            "MetricName": "request_processing_latency",
+            "Statistics": "Max",
+            "Unit": "Milliseconds"
+          },
+          {
+            "Label": "Request Processing Latency",
+            "MetricName": "request_processing_latency",
+            "Statistics": "Min",
+            "Unit": "Milliseconds"
+          }
+        ],
+        "dimensions": ["apiproxy"]
       }
     }
   }

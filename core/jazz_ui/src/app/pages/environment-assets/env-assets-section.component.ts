@@ -1,5 +1,5 @@
 import { Component, OnInit, ComponentFactoryResolver, ReflectiveInjector, ElementRef ,EventEmitter, Output, Inject, Input,ViewChild} from '@angular/core';
-import { RequestService } from "../../core/services";
+import { RequestService, MessageService } from "../../core/services";
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpModule } from '@angular/http';
 import { DataCacheService , AuthenticationService } from '../../core/services/index';
@@ -9,85 +9,37 @@ import { AdvancedFilterService } from './../../advanced-filter.service';
 import { AdvFilters } from './../../adv-filter.directive';
 import { environment } from './../../../environments/environment.internal';
 import { environment as env_internal } from './../../../environments/environment.internal';
-
-
+import { environment as env_oss} from './../../../environments/environment.oss';
+import * as moment from 'moment';
+import * as _ from 'lodash';
+import { UtilsService } from '../../core/services/utils.service';
+import { RenameFieldService } from '../../core/services/rename-field.service';
+declare let Promise;
 
 
 @Component({
   selector: 'env-assets-section',
 	templateUrl: './env-assets-section.component.html',
-	providers: [RequestService],
+	providers: [RequestService, MessageService, RenameFieldService],
   styleUrls: ['./env-assets-section.component.scss']
 })
-export class EnvAssetsSectionComponent implements OnInit {
+export class EnvAssetsSectionComponent {
 
-	 state: string = 'default';
-   showPaginationtable: boolean = false;
-   currentlyActive: number = 1;
-	 totalPageNum: number = 12;
-	 offset:number = 0;
-	 offsetval:number = 0;
-
+	state: string = 'default';
+  showPaginationtable: boolean = false;
+  currentlyActive: number = 1;
+	offsetval:number = 0;
+	public assetList:any = [];
 	private env:any;
 	private http:any;
 	private subscription:any;
-	@ViewChild('filtertags') FilterTags: FilterTagsComponent;
-
-	@ViewChild(AdvFilters) advFilters: AdvFilters;
+	public serviceType;
+	public assetType:any;
 	componentFactoryResolver:ComponentFactoryResolver;
-
-	fromassets:boolean = true;
-
-
-	advanced_filter_input:any = {
-		time_range:{
-			show:false,
-		},
-		slider:{
-			show:false,
-		},
-		period:{
-			show:false,
-		},
-		statistics:{
-			show:false,
-		},
-		path:{
-			show:false,
-		},
-		environment:{
-			show:false,
-		},
-		method:{
-			show:false,
-		},
-		account:{
-			show:true,
-		},
-		region:{
-			show:true,
-		}
-	}
-
-	assetsList: any = [];
-
-	accList=env_internal.urls.accounts;
-		regList=env_internal.urls.regions;
-			accSelected:string = this.accList[0];
-		regSelected:string=this.regList[0];
 	type: any = [];
-
 	length: any;
-	// image: any = [];
-	slNumber: any = [];
 	serviceName: any = [];
 	domain: any = [];
-	arn: any = [];
-	Provider: any = [];
-	status: any = [];
-	time: any = [];
-	url : any = [];
-	endpoint : any = [];
 	envResponseEmpty:boolean = false;
   envResponseTrue:boolean = false;
   envResponseError:boolean = false;
@@ -111,142 +63,107 @@ export class EnvAssetsSectionComponent implements OnInit {
 	islink:boolean = false;
 	count: any = [];
 	relativeUrl:string = '/jazz/assets';
+	payload:any = {}
+	errMessage: string = "Something went wrong while fetching your data"
 
+	@Input() service: any = {};
+	assetListbyType;
+  currentType;
+  public cardsScroller;
+  public cardsOversized;
+  public cardSize = 135 + 12;
+  public cardOffset = 0;
+  selectedCard = 0;
+  sortkey = 'last_updated';
+  direction = -1;
+  @ViewChild('carouselCards') carouselCards;
+  @ViewChild('cardsScroller') set _cardsScroller(input) {
+    this.cardsScroller = input;
+    if (this.cardsScroller) {
+      setTimeout(() => {
+        this.cardsOversized = this.cardsScroller.nativeElement.scrollWidth >
+          this.carouselCards.nativeElement.getBoundingClientRect().width;
+      });
+    }
+  };
 
-  @Input() service: any = {};
+  tableHeader = [
+		{
+			label: 'Provider ID',
+			key: 'provider_id',
+			sort: true
+		},
+		{
+			label: 'Last Updated',
+			key: 'last_updated',
+			sort: true
+		}
+	];
 
   constructor(
 		private request:RequestService,
+		private messageservice: MessageService,
 		private route: ActivatedRoute,
 		private router: Router,
 		private cache: DataCacheService,
-		private authenticationservice: AuthenticationService ,
+		private authenticationservice: AuthenticationService,
+		private utilsService: UtilsService,
+		private renameFieldService: RenameFieldService,
 		@Inject(ComponentFactoryResolver) componentFactoryResolver,private advancedFilters: AdvancedFilterService ,
 
   ) {
 		this.http = request;
+		this.toastmessage = messageservice;
 		this.componentFactoryResolver = componentFactoryResolver;
-		var comp = this;
-		setTimeout(function(){
-			comp.getFilter(advancedFilters);
-		},5000);
    }
 
   refresh() {
     this.envResponseEmpty = false;
     this.envResponseError = false;
     this.envResponseTrue = false;
-    this.callServiceEnvAssets();
-  }
-
-
-	 getFilter(filterServ){
-
+		this.callServiceEnvAssets();
 	}
 
-   onaccSelected(event){
-    this.FilterTags.notify('filter-Account',event);
-    this.accSelected=event;
-
-   }
-	onregSelected(event){
-    this.FilterTags.notify('filter-Region',event);
-    this.regSelected=event;
-   }
-
-   onFilterSelect(event){
-	switch(event.key){
-
-
-	  case 'account':{
-		  this.FilterTags.notify('filter-Account',event.value);
-		this.accSelected=event.value;
-		break;
-	  }
-	  case 'region':{
-		this.FilterTags.notify('filter-Region',event.value);
-		this.regSelected=event.value;
-		break;
-
-	  }
-
-
+	offsetLeft() {
+		if (this.cardsScroller.nativeElement.getBoundingClientRect().right > this.carouselCards.nativeElement.getBoundingClientRect().right) {
+		this.cardOffset -= 1;
+		}
 	}
 
-}
-
-   cancelFilter(event){
-
+	offsetRight() {
+		if (this.cardOffset < 0) {
+		this.cardOffset += 1;
+		}
 	}
+
 	callServiceEnvAssets() {
 		this.isLoading = true;
     if ( this.subscription ) {
       this.subscription.unsubscribe();
 		}
-
-
-    var payload = {
-      service: this.service.name,
-      domain: this.service.domain,
-      environment: this.env,
-      limit: this.limitValue,
-      offset: this.offsetval
-    };
-
-    this.subscription = this.http.get(this.relativeUrl, payload).subscribe(
+		this.payload['service'] = this.service.name;
+		this.payload['domain'] = this.service.domain;
+		this.payload['environment'] = this.env;
+		this.payload['offset'] = this.offsetval;
+    this.subscription = this.http.get(this.relativeUrl, this.payload, this.service.id).subscribe(
       (response) => {
-
-        if((response.data == undefined) || (response.data.length == 0)){
+		var res = response.data.assets;
+        if((res == undefined) || (res.length == 0)){
           this.envResponseEmpty = true;
           this.isLoading = false;
         }
         else
         {
-          var pageCount = response.data.count;
-
-
-        if(pageCount){
-          this.totalPageNum = Math.ceil(pageCount/this.limitValue);
-        }
-        else{
-          this.totalPageNum = 0;
-        }
         this.envResponseEmpty = false;
         this.isLoading = false;
 
         this.envResponseTrue = true;
         this.length = response.data.assets.length;
-
-        this.assetsList = response.data.assets;
-
         for(var i=0; i < this.length ; i++){
-          this.type[i] = response.data.assets[i].asset_type;
-          this.slNumber[i] = this.offsetval + (i+1);
-          if( response.data.assets[i].provider == undefined ){
-            this.Provider[i] = "-"
-          }else{
-          this.Provider[i] = response.data.assets[i].provider;
-          }
-          if( response.data.assets[i].status == undefined ){
-            this.status[i] = "-"
-          }else{
-          this.status[i] = response.data.assets[i].status;
-          }
-          if( response.data.assets[i].endpoint_url == undefined ){
-            this.endpoint[i] = "-"
-          }else{
-          this.endpoint[i] = response.data.assets[i].endpoint_url;;
-          }
-          if( response.data.assets[i].swagger_url == undefined ){
-            this.url[i] = "-"
-          }else{
-          this.url[i] = response.data.assets[i].swagger_url;
-          }
-          if( response.data.assets[i].provider_id == undefined ){
-            this.arn[i] = "-"
-          }else{
-          this.arn[i] = response.data.assets[i].provider_id;
-          }
+			this.type[i] = {
+				'key': res[i].asset_type,
+				'assetTypeDisplayName': this.renameFieldService.getDisplayNameOfKey(res[i].asset_type) || res[i].asset_type
+		   }
 
           this.lastCommitted = response.data.assets[i].timestamp;
           var commit = this.lastCommitted.substring(0,19);
@@ -260,21 +177,24 @@ export class EnvAssetsSectionComponent implements OnInit {
             this.count[i] = 4;
             this.commitDiff[i] = Math.floor(this.commitDiff[i]/30)
           }else
-          if( this.commitDiff[i] == 0 ){
-            this.count[i] = 2;
-            this.commitDiff[i] = Math.floor(Math.abs((todays.getHours() - lastCommit.getHours())));
-            if( this.commitDiff[i] == 0 ){
-            this.count[i] = 1;
-            this.commitDiff[i] = Math.floor(Math.abs((todays.getMinutes() - lastCommit.getMinutes())));
-            if( this.commitDiff[i] == 0 ){
-              this.count[i] = 0;
-              this.commitDiff[i] = "Just now";
-            }
-            }
-          }
-
-          }
-
+				if( this.commitDiff[i] == 0 ){
+					this.count[i] = 2;
+					this.commitDiff[i] = Math.floor(Math.abs((todays.getHours() - lastCommit.getHours())));
+					if( this.commitDiff[i] == 0 ){
+					this.count[i] = 1;
+					this.commitDiff[i] = Math.floor(Math.abs((todays.getMinutes() - lastCommit.getMinutes())));
+					if( this.commitDiff[i] == 0 ){
+					this.count[i] = 0;
+					this.commitDiff[i] = "Just now";
+					}
+					}
+				}
+			res[i]['last_updated'] = this.commitDiff[i];
+			res[i]['last_update_count'] = this.count[i];
+          	}
+		  	this.type = _.uniqBy(this.type, 'key');
+			this.assetListbyType = this.utilsService.groupByKey(res, 'asset_type');
+			this.currentType = this.type[0];
 
         }
       },
@@ -286,10 +206,10 @@ export class EnvAssetsSectionComponent implements OnInit {
         this.getTime();
         this.errorURL = window.location.href;
         this.errorAPI = env_internal.baseurl+"jazz/assets/search";
-        this.errorRequest = payload;
+        this.errorRequest = this.payload;
         this.errorUser = this.authenticationservice.getUserId();
         this.errorResponse = JSON.parse(error._body);
-
+        this.errMessage = this.toastmessage.errorMessage(error, "getAssetResponse");
 
       })
 		};
@@ -407,78 +327,28 @@ export class EnvAssetsSectionComponent implements OnInit {
 		 window.open(url , '_blank');
 	 }
 
-	 ngOnInit() {
-
-	}
-	limitValue : number = 10;
-  prevActivePage: number = 0;
-
-	paginatePage(currentlyActivePage){
-    if(this.prevActivePage != currentlyActivePage){
-      this.prevActivePage = currentlyActivePage;
-      this.assetsList = [];
-
-
-			this.offsetval = (this.limitValue * (currentlyActivePage-1));
-
-			this.callServiceEnvAssets();
-
-    }
-    else{
-    }
-	}
-
-
-	paginatePageInTable(clickedPage){
-		switch(clickedPage){
-		 case 'prev':
-		   if(this.currentlyActive > 1)
-			 this.currentlyActive = this.currentlyActive - 1;
-		   break;
-		 case 'next':
-		   if(this.currentlyActive < this.totalPageNum)
-			 this.currentlyActive = this.currentlyActive + 1;
-		   break;
-		 case '1':
-		   this.currentlyActive = 1;
-		   break;
-		 default:
-		   if(clickedPage > 1){
-			 this.currentlyActive = clickedPage;
-		   }
-		}
-		// paginatePage()
-		this.paginatePage(this.currentlyActive);
- }
-
 	ngOnChanges(x:any) {
-    this.route.params.subscribe(
-      params => {
-			this.env = params.env;
-			if(this.env == "prd"){
-				this.env = "prod";
-			}
-    });
-    this.callServiceEnvAssets();
-}
+		this.route.params.subscribe(
+		params => {
+				this.env = params.env;
+				if(this.env == "prd"){
+					this.env = "prod";
+				}
+		});
+		this.callServiceEnvAssets();
+	}
 
-refreshCostData(event){
-  this.callServiceEnvAssets();
-}
-public goToAbout(hash){
-	this.router.navigateByUrl('landing');
-	this.cache.set('scroll_flag',true);
-	this.cache.set('scroll_id',hash);
-}
+	refreshCostData(event){
+	this.callServiceEnvAssets();
+	}
+	public goToAbout(hash){
+		this.router.navigateByUrl('landing');
+		this.cache.set('scroll_flag',true);
+		this.cache.set('scroll_id',hash);
+	}
 
-  public assetTypeToLabel(type) {
-    switch(type) {
-      case 'swagger_url':
-      case 'endpoint_url':
-        return 'URL';
-      default:
-        return 'Provider ID';
-    }
-  }
-
+	sortTablebyKey(event) {
+		this.sortkey = event.key;
+		this.direction = event.reverse ? 1 : -1;
+	}
 }

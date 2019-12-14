@@ -74,9 +74,11 @@ describe('platform_services', function() {
       },
       "body" : {
         "description" : "g0nna_GET_a-L!tt1e_we!rd",
+        "deployment_accounts" : [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":true}],
         "email" : "gonnaGetALittle@Wild.com",
 		    "metadata":{"service":"test-service2","securityGroupIds":"sg-cdb65db9"}
       },
+      "services": "[{\"serviceId\": \"k!ngd0m_0f_Mewni\",\"policies\": [{\"category\": \"manage\",\"permission\": \"admin\"},{\"category\": \"code\",\"permission\": \"write\"},{\"category\": \"deploy\",\"permission\": \"write\"}]}]",
       "principalId": "g10$saryck"
     };
     context = awsContext();
@@ -162,6 +164,14 @@ describe('platform_services', function() {
     event.method = "GET";
     var attemptBool = dynamoCheck("get", spy);
     assert.isTrue(attemptBool);
+  });
+
+  it("should indicate unauthorized error while accessing data from dynamoDB by id if 'GET' method and id are defined, but user does not have access permission", function(){
+    event.method = "GET";
+    event.services = "[]"
+    index.handler(event, context, (err, res) => {
+      expect(err).to.include('{"errorType":"Unauthorized","message":"You aren\'t authorized to access this service."}')
+    });
   });
 
   /*
@@ -266,8 +276,42 @@ describe('platform_services', function() {
   it("should attempt to get all/filtered items from dynamoDB if 'GET' method and no id are defined", function(){
     event.method = "GET";
     event.path.id = undefined;
-    var attemptBool = dynamoCheck("scan", spy);
-    assert.isTrue(attemptBool);
+    let dataObj = {
+      Items: [
+        {
+          SERVICE_ID: {S: "k!ngd0m_0f_Mewni"},
+          TIMESTAMP: {S: "qwerty"},
+          SERVICE_NAME: {S: event.query.service},
+          SERVICE_NAMESPACE: {S: event.query.domain}
+        }
+      ]
+    }
+    AWS.mock("DynamoDB", "scan", (params, cb) => {
+      return cb(null, dataObj);
+    });
+    index.handler(event, context, (err, res) => {
+      expect(res).to.include.all.keys("data", "input");
+      expect(res.data).to.include.all.keys("count", "services");
+      let serviceList = res.data.services;
+      for (i in serviceList) {
+        expect(serviceList[i].service).to.eq(dataObj.Items[i].SERVICE_NAME.S);
+        expect(serviceList[i].namespace).to.eq(dataObj.Items[i].SERVICE_NAMESPACE.S);
+        expect(serviceList[i].id).to.eq(dataObj.Items[i].SERVICE_ID.S);
+      };
+      AWS.restore("DynamoDB");
+    });
+  });
+
+  it("should expect empty list to get from dynamoDB for 'GET' method if id is defined and user don't have access to any services", function(){
+    event.method = "GET";
+    event.path.id = undefined;
+    event.services = "[]"
+    index.handler(event, context, (err, res) => {
+      expect(res).to.include.all.keys("data", "input");
+      expect(res.data).to.include.all.keys("count", "services");
+      expect(res.data.count).to.eq(0);
+      expect(res.data.services).to.be.empty;
+    });
   });
 
   /*
@@ -301,22 +345,25 @@ describe('platform_services', function() {
   });
 
   /*
-  * Given a userID that IS-NOT not listed among admin_users, dynamoDB only scans for specific user's services
-  * @param {object} event->event.method="GET", event.path.id is undefined
+  * Given an event.method = get and service and domain values to query, service and domain info should be added to the filter
+  * @param {object} event->event.method="GET", event.path.id is undefined, query values of service & domain are defined
   * @params {object, function} default aws context, and callback function as defined in beforeEach
   */
-  it("should return only the user's relevant service data if user is not an admin", function(){
+  it("should include service and domain info in dynamodb filter if given specific event props", function(){
     event.method = "GET";
     event.path.id = undefined;
-    event.query.created_by = undefined;
 
-    //user that is not listed among admin_users
-    var userId = "Mete0ra";
-
-    event.principalId = userId;
+    var service = "admin";
+    var domain = "pits";
+    Object.assign(event.query, { service, domain });
+    event.query["isSearch"] = true;
     var dataType = "S";
-    var filterString = "SERVICE_CREATED_BY" + " = :" + "SERVICE_CREATED_BY";
-    var scanParam = ":SERVICE_CREATED_BY";
+    var scanParams = [":SERVICE_NAME", ":SERVICE_DOMAIN"];
+    if (event.query.isSearch) {
+      var filterStrings = ["contains(SERVICE_NAME, :SERVICE_NAME)", "contains(SERVICE_DOMAIN, :SERVICE_DOMAIN)"];
+    } else {
+      var filterStrings = ["SERVICE_NAME = :SERVICE_NAME", "SERVICE_DOMAIN = :SERVICE_DOMAIN"];
+    }    
     //mocking DynamoDB.scan, expecting callback to be returned with params (error,data)
     AWS.mock("DynamoDB", "scan", spy);
     //trigger spy by calling index.handler()
@@ -324,8 +371,10 @@ describe('platform_services', function() {
     //assigning the item filter values passed to DynamoDB.scan as values to check against
     var filterExp = spy.args[0][0].FilterExpression;
     var expAttrVals = spy.args[0][0].ExpressionAttributeValues;
-    var allCases = filterExp.includes(filterString) &&
-                    expAttrVals[scanParam][dataType] == userId;
+    var allCases = filterExp.includes(filterStrings[0])
+      && filterExp.includes(filterStrings[1])
+      && expAttrVals[scanParams[0]][dataType] == service
+      && expAttrVals[scanParams[1]][dataType] == domain;
     AWS.restore("DynamoDB");
     assert.isTrue(allCases);
   });
@@ -651,7 +700,7 @@ describe('platform_services', function() {
     assert.isTrue(logCheck);
 });
 
-  /* 
+  /*
   * Given a successful attempt at a dynamo service update, handler() should indicate metadata updated successfully
   * @param {object} event -> event.method is defined to be "PUT", event.path.id is defined
   * @params {object, function} default aws context, and callback function as defined in beforeEach
@@ -690,7 +739,7 @@ describe('platform_services', function() {
   assert.isTrue(logCheck);
   });
 
-  /* 
+  /*
   * Given a successful attempt at a dynamo service update, handler() should indicate array updated successfully
   * @param {object} event -> event.method is defined to be "PUT", event.path.id is defined
   * @params {object, function} default aws context, and callback function as defined in beforeEach

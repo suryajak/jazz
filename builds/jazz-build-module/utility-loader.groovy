@@ -58,11 +58,11 @@ def generateBucketNameForService(domain, service) {
  */
 def getBucket(stage) {
 	if (stage == 'dev') {
-		return config_loader.JAZZ.S3.WEBSITE_DEV_BUCKET
+		return config_loader.JAZZ.PLATFORM.AWS.S3.WEBSITE_DEV_BUCKET
 	} else if (stage == 'stg') {
-		return config_loader.JAZZ.S3.WEBSITE_STG_BUCKET
+		return config_loader.JAZZ.PLATFORM.AWS.S3.WEBSITE_STG_BUCKET
 	} else if (stage == 'prod') {
-		return config_loader.JAZZ.S3.WEBSITE_PROD_BUCKET
+		return config_loader.JAZZ.PLATFORM.AWS.S3.WEBSITE_PROD_BUCKET
 	}
 }
 
@@ -91,28 +91,6 @@ def parseJson(def json) {
     new groovy.json.JsonSlurperClassic().parseText(json)
 }
 
-/**
-getAPIId takes api Id mapping document and a config object to return an API Id
-*/
-
-def getAPIId(apiIdMapping, config) {
-	return getAPIId(apiIdMapping, config['domain'], config['service'])
-}
-
-def getAPIId(apiIdMapping, namespace, service) {
-	if (!apiIdMapping) {
-		error "No mapping document provided to lookup API Id!!"
-	}
-
-	if (apiIdMapping["${namespace}_${service}"]) {
-		return apiIdMapping["${namespace}_${service}"];
-	} else if (apiIdMapping["${namespace}_*"]) {
-		return apiIdMapping["${namespace}_*"];
-	} else {
-		apiIdMapping["*"];
-	}
-}
-
 @NonCPS
 def generateAssetMap(provider, providerId, type, service_config) {
 
@@ -132,6 +110,7 @@ def getAssets(assets_api, auth_token, service_config, env) {
       assets = sh (
       script: "curl GET  \
 			-H \"Content-Type: application/json\" \
+      -H \"Jazz-Service-ID: ${service_config['service_id']}\" \
 			-H \"Authorization: $auth_token\" \
 			\"${assets_api}?domain=${service_config['domain']}&service=${service_config['service']}&environment=${env}\"",
       returnStdout: true
@@ -141,12 +120,6 @@ def getAssets(assets_api, auth_token, service_config, env) {
       echo "Exception occured while getting the assets. $ex"
   }
   return assets
-}
-/**
-getAPIIdForCore is a helper method to get apiId for jazz core services
-*/
-def getAPIIdForCore(apiIdMapping) {
-	return getAPIId(apiIdMapping, "jazz", "*")
 }
 
 /**
@@ -169,6 +142,63 @@ def getApiToken(){
 def isReplayedBuild() {
   def replayClassName = "org.jenkinsci.plugins.workflow.cps.replay.ReplayCause"
   currentBuild.rawBuild.getCauses().any{ cause -> cause.toString().contains(replayClassName) }
+}
+
+/*
+* Get the required account
+*/
+def getAccountInfo(service_config){
+	def dataObj = {};
+	for (item in configLoader.AWS.ACCOUNTS) {
+		if(item.ACCOUNTID == service_config.accountId){
+			dataObj = item
+		}
+	}
+	return dataObj;
+}
+
+/*
+* Get the primary account
+*/
+def getAccountInfoPrimary(){
+  def dataObjPrimary = {};
+	for (item in configLoader.AWS.ACCOUNTS) {
+		if(item.PRIMARY){
+			dataObjPrimary = item
+		}
+	}
+	return dataObjPrimary;
+}
+
+/**
+*  Get Account Specific S3
+*/
+
+def getAccountBucketName(service_config) {
+	def s3Object = {}
+	def accountObject = getAccountInfo(service_config);
+	if( accountObject.size() > 0){
+		def regions = accountObject['REGIONS'];
+		for (region in regions ){
+			if( region['REGION'] == service_config.region) { 
+				s3Object = region['S3'];
+			}
+		}
+	}
+	return s3Object;
+}
+
+/*
+* Get the required azure account
+*/
+def getAzureAccountInfo(service_config){
+	def dataObj = {};
+	for (item in configLoader.AZURE.ACCOUNTS) {
+		if(item.ACCOUNTID == service_config.accountId){
+			dataObj = item
+		}
+	}
+	return dataObj;
 }
 
 return this

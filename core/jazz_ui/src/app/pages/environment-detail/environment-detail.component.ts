@@ -7,8 +7,6 @@ import {DataService} from "../data-service/data.service";
 import {environment} from './../../../environments/environment';
 import {environment as env_internal} from './../../../environments/environment.internal';
 import {environment as env_oss} from './../../../environments/environment.oss';
-
-
 import {EnvDeploymentsSectionComponent} from './../environment-deployment/env-deployments-section.component';
 
 
@@ -26,18 +24,19 @@ export class EnvironmentDetailComponent implements OnInit {
   isFunction: boolean = false;
   breadcrumbs = [];
   api_doc_name: string = '';
-  selectedTab = 0;
+  selectedTab = 'overview';
   service: any = {};
   friendly_name: any;
   status_val: number;
   serviceId: any;
   envStatus: string;
   environment_obj: any;
+  platform:any;
   isLoadingService: boolean = true;
   status_inactive: boolean = false;
   swagger_error: boolean = false;
 
-  tabData = ['overview', 'deployments', 'code quality', 'assets', 'logs'];
+  tabData = ['overview', 'deployments', 'code quality', 'assets', 'logs', 'metrics'];
   envSelected: string = '';
   endpoint_env: string = '';
   environment = {
@@ -55,6 +54,12 @@ export class EnvironmentDetailComponent implements OnInit {
   private subscription: any;
   public assets;
   isENVavailable:boolean = false;
+  isDeployAccess: boolean = false;
+  isAdminAccess: boolean =false;
+  currentUser: any = {};
+  isError403: boolean = false;
+  mobTabData: any;
+  mobSecState: number;
 
   constructor(
     private toasterService: ToasterService,
@@ -126,7 +131,8 @@ export class EnvironmentDetailComponent implements OnInit {
         status: service.status,
         domain: service.domain,
         repository: service.repository,
-        deployment_targets :  service.deployment_targets[service.type].S || service.deployment_targets[service.type]
+        deployment_targets :  service.deployment_targets[service.type].S || service.deployment_targets[service.type],
+        provider: service.deployment_accounts[0].provider 
       }
     }
   };
@@ -161,20 +167,34 @@ export class EnvironmentDetailComponent implements OnInit {
 
   fetchService(id: string) {
     this.isLoadingService = true;
-    this.subscription = this.http.get('/jazz/services/' + id).subscribe(
+    this.subscription = this.http.get('/jazz/services/' + id, null, this.serviceId).subscribe(
       response => {
         this.service.accounts = env_internal.urls.accounts;
         this.service.regions = env_internal.urls.regions;
-        this.service = response.data.data;
+        this.service = response.data;
+        this.platform = response.data.deployment_accounts[0].provider;
         if (environment.envName == 'oss') this.service = response.data;
         this.isFunction = this.service.type === "function";
+        if (this.service.policies && this.service.policies.length) {
+          this.service.policies.forEach(policy => {
+            if(policy.category === "deploy" && policy.permission === "write") {
+              this.isDeployAccess = true;
+            } else if (policy.category === "manage" && policy.permission === "admin") {
+              this.isAdminAccess = true;
+            }
+          });
+        }
         this.getAssets();
         this.setTabs();
         this.cache.set(id, this.service);
         this.onDataFetched(this.service);
         this.envoverview.notify(this.service);
+
       },
       err => {
+        if(err.status === 403) {
+          this.isError403 = true;
+        }
         this.isLoadingService = false;
         let errorMessage = this.messageservice.errorMessage(err, "serviceDetail");
         this.toast_pop('error', 'Oops!', errorMessage)
@@ -185,9 +205,9 @@ export class EnvironmentDetailComponent implements OnInit {
 
   setTabs() {
     if (this.service.serviceType === 'api' || this.service.type === 'api') {
-      this.tabData = ['overview', 'deployments', 'assets', 'metrics', 'code quality', 'logs'];
+      this.tabData = ['overview', 'deployments', 'code quality', 'assets', 'logs', 'metrics'];
     } else if (this.service.serviceType === 'function' || this.service.type === 'function') {
-      this.tabData = ['overview', 'deployments', 'assets', 'metrics', 'code quality', 'logs'];
+      this.tabData = ['overview', 'deployments', 'code quality', 'assets', 'logs', 'metrics'];
     } else if (this.service.serviceType === 'website' || this.service.type === 'website') {
       this.tabData = ['overview', 'deployments', 'assets', 'metrics'];
     }
@@ -199,7 +219,7 @@ export class EnvironmentDetailComponent implements OnInit {
       domain: this.service.domain,
       environment: this.envSelected,
       limit: undefined
-    }).subscribe((assetsResponse) => {
+    },this.service.id).subscribe((assetsResponse) => {
       this.assets = assetsResponse.data.assets;
       this.service.assets = this.assets;
     }, (err) => {
@@ -230,7 +250,7 @@ export class EnvironmentDetailComponent implements OnInit {
       }
   }
 
-  setSidebar(sidebar) {
+  setSidebar(sidebar = '') {
     this.sidebar = sidebar;
   }
 
@@ -244,6 +264,7 @@ export class EnvironmentDetailComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.currentUser = JSON.parse(localStorage.getItem('currentUser'));
     this.api_doc_name = env_oss.api_doc_name;
     this.sub = this.route.params.subscribe(params => {
       let id = params['id'];
@@ -263,6 +284,10 @@ export class EnvironmentDetailComponent implements OnInit {
         'link': ''
       }
     ];
+  }
+
+  public changeActivity(data){
+    this.mobSecState = data;
   }
 
   ngOnChanges(x: any) {

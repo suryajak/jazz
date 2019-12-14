@@ -1,5 +1,5 @@
 // =========================================================================
-// Copyright � 2017 T-Mobile USA, Inc.
+// Copyright © 2017 T-Mobile USA, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ const logger = require("../components/logger.js");
 const CronParser = require("../components/cron-parser.js");
 const configModule = require("../components/config.js");
 
-let event, context, callback, spy, stub, checkCase, authStub,service_creation_data;
+let event, context, callback, spy, stub, checkCase, authStub, service_creation_data;
 
 //setup a spy to wrap around async logic/logic that need extraneous sources
 spy = sinon.spy();
@@ -90,12 +90,13 @@ describe('create-serverless-service', function () {
           "service_type": "function",
           "domain": "test-domain",
           "runtime": "nodejs",
+          "deployment_accounts" : [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":true},{"accountId":"67890","region":"us-west-2","provider":"aws","primary":false}],
           "approvers": ['tw1light_$pArkle'],
           "rateExpression": "1 * * * ? *",
           "slack_channel": "mlp_fim",
           "require_internal_access": false,
           "create_cloudfront_url": false,
-          "deployment_targets": {"api": "gcp_apigee"}
+          "deployment_targets": { "function": "aws_lambda" }
         }
       };
 
@@ -116,7 +117,7 @@ describe('create-serverless-service', function () {
       if (stub) {
         stub.restore();
       }
-    })
+    });
 
 
     /*
@@ -159,7 +160,7 @@ describe('create-serverless-service', function () {
 
     it("should inform user of error if given an event with no body.deployment_targets", function () {
       let configstub = sinon.stub(configModule, "getConfig").returns({
-        "DEPLOYMENT_TARGETS": {"gcp": "apigee", "function": "aws_lambda"}
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" }
       });
 
       event.body.deployment_targets = null;
@@ -173,10 +174,77 @@ describe('create-serverless-service', function () {
       configstub.restore();
     });
 
-    it("should inform user of error if given an event with wrong body.deployment_target", function () {
-      event.body.deployment_targets = {"function": "invalid"};
+    it("should inform user of error if given an event with no body.deployment_accounts", function () {
       let configstub = sinon.stub(configModule, "getConfig").returns({
-        "DEPLOYMENT_TARGETS": {"gcp": "apigee", "function": "aws_lambda"}
+        "DEPLOYMENT_ACCOUNTS": [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":true},{"accountId":"67890","region":"us-west-2","provider":"aws","primary":false}],
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" }
+      });
+
+      event.body.deployment_accounts = null;
+      let errMessage = "Deployment accounts is missing or is not in a valid format";
+      let errType = "BadRequest";
+      let bothCases = checkCase("body", "deployment_accounts", "invalid", errMessage, errType) &&
+        checkCase("body", "deployment_accounts", "invalid", errMessage, errType);
+      assert.isTrue(bothCases);
+      sinon.assert.callCount(configstub, 4);
+      configstub.restore();
+    });
+
+    it("should inform user of error if given an event with no primary account.deployment_accounts", function () {
+      let configstub = sinon.stub(configModule, "getConfig").returns({
+        "DEPLOYMENT_ACCOUNTS": [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":true},{"accountId":"67890","region":"us-west-2","provider":"aws","primary":false}],
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" },
+        "PROVIDER_LIST": ["aws","azure"]
+      });
+
+      event.body.deployment_accounts = [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":false}];
+      let errMessage = "Invalid input! At least one primary deployment account is required";
+      let errType = "BadRequest";
+      let bothCases = checkCase("body", "deployment_accounts", event.body.deployment_accounts, errMessage, errType) &&
+        checkCase("body", "deployment_accounts", event.body.deployment_accounts, errMessage, errType);
+      assert.isTrue(bothCases);
+      sinon.assert.callCount(configstub, 4);
+      configstub.restore();
+    });
+
+    it("should inform user of error if given an event with two primary account.deployment_accounts", function () {
+      let configstub = sinon.stub(configModule, "getConfig").returns({
+        "DEPLOYMENT_ACCOUNTS": [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":true},{"accountId":"67890","region":"us-west-2","provider":"aws","primary":false}],
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" },
+        "PROVIDER_LIST": ["aws","azure"]
+      });
+
+      event.body.deployment_accounts = [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":true},{"accountId":"67890","region":"us-west-2","provider":"aws","primary":true}];
+      let errMessage = "Invalid input! Only one primary deployment account is allowed";
+      let errType = "BadRequest";
+      let bothCases = checkCase("body", "deployment_accounts", event.body.deployment_accounts, errMessage, errType) &&
+        checkCase("body", "deployment_accounts", event.body.deployment_accounts, errMessage, errType);
+      assert.isTrue(bothCases);
+      sinon.assert.callCount(configstub, 4);
+      configstub.restore();
+    });
+
+    it("should inform user of error if given an event with no account, region and provider for non-primary account.deployment_accounts", function () {
+      let configstub = sinon.stub(configModule, "getConfig").returns({
+        "DEPLOYMENT_ACCOUNTS": [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":true},{"accountId":"67890","region":"us-west-2","provider":"aws","primary":false}],
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" },
+        "PROVIDER_LIST": ["aws","azure"]
+      });
+
+      event.body.deployment_accounts = [{"accountId":"67890","region":"us-west-2","provider":"aws","primary":false}];
+      let errMessage = "Invalid input! At least one primary deployment account is required";
+      let errType = "BadRequest";
+      let bothCases = checkCase("body", "deployment_accounts", event.body.deployment_accounts, errMessage, errType) &&
+        checkCase("body", "deployment_accounts", event.body.deployment_accounts, errMessage, errType);
+      assert.isTrue(bothCases);
+      sinon.assert.callCount(configstub, 4);
+      configstub.restore();
+    });
+
+    it("should inform user of error if given an event with wrong body.deployment_target", function () {
+      event.body.deployment_targets = { "function": "invalid" };
+      let configstub = sinon.stub(configModule, "getConfig").returns({
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" }
       });
 
       let errMessage = "Invalid deployment_target: invalid for service type: function, valid deployment_targets: aws_lambda";
@@ -191,7 +259,7 @@ describe('create-serverless-service', function () {
     it("should inform user of error if given an event with wrong body.deployment_target defined", function () {
       event.body.deployment_targets = {};
       let configstub = sinon.stub(configModule, "getConfig").returns({
-        "DEPLOYMENT_TARGETS": {"gcp": "apigee", "function": "aws_lambda"}
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" }
       });
       let errMessage = "No deployment_targets are defined for this service type";
       let errType = "BadRequest";
@@ -231,7 +299,7 @@ describe('create-serverless-service', function () {
       let invalidName = "service-name-with-more-than-20-characters"
       let errMessage = "'Service Name' can have up to 20 characters";
       let errType = "BadRequest";
-      let allCases =  checkCase("body", "service_name", invalidName, errMessage, errType)
+      let allCases = checkCase("body", "service_name", invalidName, errMessage, errType)
       assert.isTrue(allCases);
     });
 
@@ -285,10 +353,11 @@ describe('create-serverless-service', function () {
 
     it("should state the user isn't authorized if no principalId is given", function () {
       let configstub = sinon.stub(configModule, "getConfig").returns({
-        "DEPLOYMENT_TARGETS": {"gcp": "apigee", "function": "aws_lambda"}
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" },
+        "PROVIDER_LIST": ["aws","azure"]
       });
 
-      event.body.deployment_targets = {"function": "aws_lambda"};
+      event.body.deployment_targets = { "function": "aws_lambda" };
       let errMessage = "User is not authorized to access this service";
       let errType = "Forbidden";
       let bothCases = checkCase("principalId", null, null, errMessage, errType) &&
@@ -305,11 +374,12 @@ describe('create-serverless-service', function () {
 
     it("should give success message if service onboarding in Jenkins setup attempt is succesful", () => {
       let configstub = sinon.stub(configModule, "getConfig").returns({
-        "DEPLOYMENT_TARGETS": {"gcp": "apigee", "function": "aws_lambda"},
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" },
         "SERVICE_API_URL": "https://{conf-apikey}.execute-api.{conf-region}.amazonaws.com/",
-        "TOKEN_URL": "dev/jazz/services"
+        "TOKEN_URL": "dev/jazz/services",
+        "PROVIDER_LIST": ["aws","azure"]
       });
-      event.body.deployment_targets = {"function": "aws_lambda"};
+      event.body.deployment_targets = { "function": "aws_lambda" };
       let responseObject_getToken = {
         statusCode: 200,
         body: {
@@ -364,10 +434,11 @@ describe('create-serverless-service', function () {
 
     it("should Return the Error message if jenkinks job failed ", () => {
       let configstub = sinon.stub(configModule, "getConfig").returns({
-        "DEPLOYMENT_TARGETS": {"gcp": "apigee", "function": "aws_lambda"},
-        "JOB_BUILD_URL": "{conf-jenkins-host}/job/create-service/buildWithParameters"
+        "DEPLOYMENT_TARGETS": { "gcp": "apigee", "function": "aws_lambda" },
+        "JOB_BUILD_URL": "{conf-jenkins-host}/job/create-service/buildWithParameters",
+        "PROVIDER_LIST": ["aws","azure"]
       });
-      event.body.deployment_targets = {"function": "aws_lambda"};
+      event.body.deployment_targets = { "function": "aws_lambda" };
       let bool = false;
       let responseObject_getToken = {
         statusCode: 200,
@@ -397,6 +468,7 @@ describe('create-serverless-service', function () {
           data: "Service catalog updated"
         }
       };
+
       event.stage = "dev";
       let config = configModule.getConfig(event, context);
       // wrapping requests
@@ -412,11 +484,11 @@ describe('create-serverless-service', function () {
             jenkins_api_failure: true
           }
           return obj.callback(errObject, responseObject_serviceOnboarding, responseObject_serviceOnboarding.body);
-        } else if (obj.uri = 'https://{conf-apikey}.execute-api.{conf-region}.amazonaws.com/dev/jazz/services/ghd93-3240-2343') {
+        } else if (obj.uri === 'https://{conf-apikey}.execute-api.{conf-region}.amazonaws.com/dev/jazz/services/ghd93-3240-2343') {
           obj.callback(null, responseObject_update, responseObject_update.body);
         }
       });
-      let callFunction = index.handler(event, context, (err, res) => {
+      index.handler(event, context, (err, res) => {
         err = JSON.parse(err);
         if (err.message == "Service onboarding jenkings build Failed") {
           bool = true;
@@ -424,9 +496,10 @@ describe('create-serverless-service', function () {
         sinon.assert.callCount(configstub, 2);
         configstub.restore();
         assert.isTrue(bool);
-      })
-    })
-  })
+      });
+    });
+  });
+
   describe("getToken", () => {
     let config, event;
     beforeEach(() => {
@@ -446,11 +519,11 @@ describe('create-serverless-service', function () {
           "slack_channel": "mlp_fim",
           "require_internal_access": false,
           "create_cloudfront_url": false,
-          "deployment_targets": {"api": "apigee"}
+          "deployment_targets": { "api": "apigee" }
         }
       };
       config = configModule.getConfig(event, context);
-    })
+    });
 
     it("Should Return authToken when called with valid paramenters", () => {
       let bool = false;
@@ -470,10 +543,10 @@ describe('create-serverless-service', function () {
           bool = true;
         }
         assert.isTrue(bool);
-      })
+      });
       sinon.assert.calledOnce(reqStub);
       reqStub.restore();
-    })
+    });
 
     it("Should Return error message  when called with invalid paramenters", () => {
       let bool = false;
@@ -497,12 +570,12 @@ describe('create-serverless-service', function () {
           bool = true
         }
         assert.isTrue(bool);
-      })
+      });
       sinon.assert.calledOnce(reqStub);
       reqStub.restore();
-    })
+    });
+  });
 
-  })
   describe("getServiceData", () => {
     beforeEach(function () {
       event = {
@@ -521,7 +594,7 @@ describe('create-serverless-service', function () {
           "slack_channel": "mlp_fim",
           "require_internal_access": false,
           "create_cloudfront_url": false,
-          "deployment_targets": {"api": "apigee"}
+          "deployment_targets": { "api": "apigee" }
         }
       };
       service_creation_data = event.body;
@@ -548,15 +621,14 @@ describe('create-serverless-service', function () {
             bool = true;
           }
           assert.isTrue(bool);
-        })
+        });
       }
-
     });
 
     it("should return input object with METADATA values for valid input parameters for service type function (for different event sources)", () => {
       let authToken = "temp-auth-token";
       let eventsList = ["s3", "dynamodb", "sqs", "kinesis"];
-      service_creation_data.rateExpression = ""
+      service_creation_data.rateExpression = "";
       let config = configModule.getConfig(event, context);
 
       eventsList.forEach(each => {
@@ -565,21 +637,22 @@ describe('create-serverless-service', function () {
           source: "temp-" + each + "-source",
           action: "temp-" + each + "-action"
         }
-        
-        service_creation_data.events = [eachEvent]
-        
+
+        service_creation_data.events = [eachEvent];
+
         index.getServiceData(service_creation_data, authToken, config)
         .then((input) => {
           let action = 'event_action_' + each;
           let source = 'event_source_' + each;
-          expect(input.METADATA).to.have.all.keys(action, source)
+          let provider = 'providerRuntime';
+          expect(input.METADATA).to.have.all.keys(action, source, provider)
         });
       })
     });
 
     it("should return input error for invalid input parameters for service type function (for different event sources)", () => {
       let authToken = "temp-auth-token";
-      let eventsList = ["", "invalidEvent"];
+      let eventsList = ["","invalidEvent"];
       service_creation_data.rateExpression = ""
       let config = configModule.getConfig(event, context);
 
@@ -589,12 +662,17 @@ describe('create-serverless-service', function () {
           source: each,
           action: "temp-" + each + "-action"
         }
-
         service_creation_data.events = [eachEvent]
 
         index.getServiceData(service_creation_data, authToken, config)
         .catch(error => {
-          expect(error).to.include({ result: 'inputError', message: each + ' name is invalid.' });
+          let message;
+          if(each == ""){
+            message = 'Event type and/or source name cannot be empty.';
+          } else {
+            message = "Event type " + "\'" + each + "\'" + " is invalid.";
+          }
+          expect(error).to.include({ result: 'inputError', message: message });
         });
       })
     });
@@ -611,59 +689,61 @@ describe('create-serverless-service', function () {
           source: each,
           action: "temp-" + each + "-action"
         }
-
-        service_creation_data.events = [eachEvent]
+        service_creation_data.events = [eachEvent];
 
         index.getServiceData(service_creation_data, authToken, config)
-        .catch(error => {
-          expect(error).to.include({ result: 'inputError', message: 'S3 name is invalid.' });
-        });
-      })
-    })
+          .catch(error => {
+            expect(error).to.include({
+              result: 'inputError',
+              message: `${each} cannot begin or end with special character`
+            });
+          });
+      });
+    });
 
     it("should return input object with deployment target when input paramter is provided with valid values for api service type ", () => {
       const authToken = "temp-auth-token";
       let bool = false;
       service_creation_data["service_type"] = "api";
-      service_creation_data["deployment_targets"] = {"api": "gcp_apigee"};
+      service_creation_data["deployment_targets"] = { "api": "gcp_apigee" };
       const config = configModule.getConfig(event, context);
-      index.getServiceData(service_creation_data, authToken, config, {"api": "gcp_apigee"})
-      .then(input => {
-        if (input.DEPLOYMENT_TARGETS["api"] === "gcp_apigee") {
-          bool = true;
-        }
-        assert.isTrue(bool);
-      });
+      index.getServiceData(service_creation_data, authToken, config, { "api": "gcp_apigee" })
+        .then(input => {
+          if (input.DEPLOYMENT_TARGETS["api"] === "gcp_apigee") {
+            bool = true;
+          }
+          assert.isTrue(bool);
+        });
     });
 
     it("should return input object with deployment target when input paramter is provided with valid values for function service type ", () => {
       const authToken = "temp-auth-token";
       let bool = false;
       service_creation_data["service_type"] = "function";
-      service_creation_data["deployment_targets"] = {"function": "aws_lambda"};
+      service_creation_data["deployment_targets"] = { "function": "aws_lambda" };
       const config = configModule.getConfig(event, context);
-      index.getServiceData(service_creation_data, authToken, config, {"function": "aws_lambda"})
-      .then(input => {
-        if (input.DEPLOYMENT_TARGETS["function"] === "aws_lambda") {
-          bool = true;
-        }
-        assert.isTrue(bool);
-      });
+      index.getServiceData(service_creation_data, authToken, config, { "function": "aws_lambda" })
+        .then(input => {
+          if (input.DEPLOYMENT_TARGETS["function"] === "aws_lambda") {
+            bool = true;
+          }
+          assert.isTrue(bool);
+        });
     });
 
     it("should return input object with deployment target when input paramter is provided with valid values for website service type ", () => {
       const authToken = "temp-auth-token";
       let bool = false;
       service_creation_data["service_type"] = "website";
-      service_creation_data["deployment_targets"] = {"website": "aws_cloudfront"};
+      service_creation_data["deployment_targets"] = { "website": "aws_cloudfront" };
       const config = configModule.getConfig(event, context);
-      index.getServiceData(service_creation_data, authToken, config, {"website": "aws_cloudfront"})
-      .then(input => {
-        if (input.DEPLOYMENT_TARGETS["website"] === "aws_cloudfront") {
-          bool = true;
-        }
-        assert.isTrue(bool);
-      });
+      index.getServiceData(service_creation_data, authToken, config, { "website": "aws_cloudfront" })
+        .then(input => {
+          if (input.DEPLOYMENT_TARGETS["website"] === "aws_cloudfront") {
+            bool = true;
+          }
+          assert.isTrue(bool);
+        });
     });
   });
 
@@ -677,6 +757,7 @@ describe('create-serverless-service', function () {
         SERVICE_NAME: 'test-service',
         DOMAIN: 'test-domain',
         DESCRIPTION: undefined,
+        DEPLOYMENT_ACCOUNTS: [{"accountId":"12345","region":"us-east-1","provider":"aws","primary":true}],
         TYPE: 'function',
         RUNTIME: 'nodejs',
         REGION: "east,UST",
@@ -688,9 +769,9 @@ describe('create-serverless-service', function () {
           eventScheduleRate: 'cron(1 * * * ? *)',
           eventScheduleEnable: true
         },
-        DEPLOYMENT_TARGETS: {"api": "apigee"}
+        DEPLOYMENT_TARGETS: { "api": "apigee" }
       }
-    })
+    });
 
     it("should send an http POST given valid input parameters ", () => {
       stub = sinon.stub(request, "Request", spy);
@@ -698,6 +779,19 @@ describe('create-serverless-service', function () {
       let callFunction = index.createService(input);
       stub.restore();
       assert.isTrue(spy.called);
+    })
+
+    it("should an http POST containing the 'deployment_descriptor' field for sls-app service", () => {
+      const theSpy = sinon.spy();
+      input.TYPE = 'sls-app';
+      input.DEPLOYMENT_DESCRIPTOR = 'service: cool';
+      stub = sinon.stub(request, "Request", theSpy);
+      let callFunction = index.createService(input);
+      stub.restore();
+
+      const requestCalledWith = theSpy.args[0][0].json;
+      assert.equal('sls-app', requestCalledWith.type);
+      assert.equal('service: cool', requestCalledWith.deployment_descriptor);
     })
 
     it("should Return service id of Created Service in case of successfull service creation", () => {
@@ -719,10 +813,10 @@ describe('create-serverless-service', function () {
           bool = true;
         }
         assert.isTrue(bool);
-      })
+      });
       sinon.assert.calledOnce(reqStub);
       reqStub.restore();
-    })
+    });
 
     it("Should Return error when service creation failed", () => {
       let bool = false;
@@ -743,12 +837,12 @@ describe('create-serverless-service', function () {
           bool = true;
         }
         assert.isTrue(bool);
-      })
+      });
       sinon.assert.calledOnce(reqStub);
       reqStub.restore();
     });
+  });
 
-  })
   describe("startServiceOnboarding", () => {
     let config, service_id, event;
     beforeEach(() => {
@@ -768,10 +862,10 @@ describe('create-serverless-service', function () {
           "slack_channel": "mlp_fim",
           "require_internal_access": false,
           "create_cloudfront_url": false,
-          "deployment_targets": {"api": "apigee"}
+          "deployment_targets": { "api": "apigee" }
         }
       };
-      service_creation_data =  event.body;
+      service_creation_data = event.body;
       config = configModule.getConfig(event, context);
       service_id = "ghd93-3240-2343";
     })
@@ -798,14 +892,14 @@ describe('create-serverless-service', function () {
           bool = true;
         }
         assert.isTrue(bool);
-      })
+      });
       sinon.assert.calledOnce(reqStub);
       reqStub.restore();
-    })
+    });
 
     it("should return error message when jenkins job has failed", () => {
       let bool = false;
-      let errMessage = "Failed to kick off service onboarding job."
+      let errMessage = "Failed to kick off service onboarding job.";
       let responseObject = {
         statusCode: 401,
         body: {
@@ -822,10 +916,10 @@ describe('create-serverless-service', function () {
           bool = true;
         }
         assert.isTrue(bool);
-      })
+      });
       sinon.assert.calledOnce(reqStub);
       reqStub.restore();
-    })
+    });
 
     it("should return success message when jenkins job has executed succesfully", () => {
       let bool = false;
@@ -840,15 +934,13 @@ describe('create-serverless-service', function () {
         return obj.callback(null, responseObject, responseObject.body);
       });
       index.startServiceOnboarding(service_creation_data, config, service_id).then((res) => {
-
         if (res && res === Message) {
           bool = true;
         }
         assert.isTrue(bool);
-      })
+      });
       sinon.assert.calledOnce(reqStub);
-      reqStub.restore()
-    })
-
-  })
-})
+      reqStub.restore();
+    });
+  });
+});

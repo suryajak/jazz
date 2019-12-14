@@ -20,9 +20,11 @@ import { environment as env_internal } from './../../../environments/environment
 })
 export class EnvDeploymentsSectionComponent implements OnInit {
   @Input() service: any = {};
+  @Input() isDeployAccess: boolean = false;
   filterloglevel:string = 'INFO';
   loadingState:string='default';
   envObj:any;
+  isSort:boolean = false;
   disableRetry:boolean = false;
   paginationSelected: Boolean = true;
 	totalPagesTable: number = 7;
@@ -69,6 +71,8 @@ export class EnvDeploymentsSectionComponent implements OnInit {
   errorRequest:any={};
   rebuild_id:any;
   isRebuildReq:Boolean = false;
+  pageSelected:Boolean = true;
+  errorMessage: string = "Something went wrong while fetching your data";
 
 	errorResponse:any={};
 	errorUser:any;
@@ -276,7 +280,7 @@ export class EnvDeploymentsSectionComponent implements OnInit {
     this.addQueryParam('service=', this.service.name, false);
     this.addQueryParam('environment=', this.env, false);
 
-    this.subscription = this.http.get(this.relativeUrl).subscribe(
+    this.subscription = this.http.get(this.relativeUrl, null, this.service.id).subscribe(
       (response) => {
 
         if((response.data == undefined) || (response.data.length == 0) || (response.data.deployments.length == 0 ) ){
@@ -289,6 +293,12 @@ export class EnvDeploymentsSectionComponent implements OnInit {
           
           if(pageCount){
             this.totalPagesTable = Math.ceil(pageCount/this.limitValue);
+            if(this.totalPagesTable === 1){
+              this.pageSelected = false;
+            }
+            else {
+              this.pageSelected = true;
+            }
           }
           else{
             this.totalPagesTable = 0;
@@ -301,8 +311,9 @@ export class EnvDeploymentsSectionComponent implements OnInit {
           this.deployedList =  this.deployments;
           this.length =  this.deployments.length;
           var countStarted = 0;
-          for(var i=0 ; i<this.length ; i++){
-            this.time[i] = this.deployments[i].created_time.slice(0,-4).replace("T"," ");
+          for (var i = 0; i < this.length; i++) {
+            let dateStr = `${this.deployments[i].created_time.replace("T", " ")}z`;
+            this.time[i] = new Date(dateStr).toString();
             this.status[i] = this.deployments[i].status;
             this.commitDetails[i] = this.deployments[i].scm_commit_hash;
             this.id[i] = this.deployments[i].deployment_id;
@@ -355,8 +366,8 @@ export class EnvDeploymentsSectionComponent implements OnInit {
           this.errorRequest = payload;
           this.errorUser = this.authenticationservice.getUserId();
           this.errorResponse = JSON.parse(error._body);
-  
-        
+          this.errorMessage = this.toastmessage.errorMessage(error, "getDeploymentsResponse");
+
       })
     };
   
@@ -640,14 +651,14 @@ rebuild(){
   this.disableBuild = true;
   this.isRebuildReq = true;
   var rebuild_url = '/jazz/deployments/';
-  this.http.post(rebuild_url+this.rebuild_id+'/re-build').subscribe(
+  this.http.post(rebuild_url+this.rebuild_id+'/re-build',{},this.service.id).subscribe(
     (response) => {
       let successMessage = this.toastmessage.successMessage(response, "retryDeploy");
       this.toast_pop('success',"",successMessage+this.service.name);      
     },
     (error) => {
-      let errorMessage = this.toastmessage.errorMessage(error, "retryDeploy");    
-      this.toast_pop('error', 'Oops!', errorMessage);
+      this.errorMessage = this.toastmessage.errorMessage(error, "retryDeploy");
+      this.toast_pop('error', 'Oops!', this.errorMessage);
       this.disableBuild = false;
     })
     this.isLoading = true;

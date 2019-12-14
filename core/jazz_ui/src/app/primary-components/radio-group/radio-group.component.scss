@@ -1,0 +1,23 @@
+ @import './../../../main-styles';
+@import'../../secondary-components/create-service/create-service.component.scss';
+.item{
+   letter-spacing: 1;
+   text-transform: capitalize;
+}
+.radio-container{
+  margin: 0.3rem -1.3rem;
+}
+.label-text{
+  font-weight: normal;
+  font-style: normal;
+  text-transform: capitalize;
+}
+
+.radio-group .background {
+  position: absolute;
+  border: none;
+  width: 11px;
+  height: 11px;
+  background-color: #fff;
+  margin: 0;
+}

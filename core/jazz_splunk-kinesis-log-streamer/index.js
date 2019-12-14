@@ -56,7 +56,8 @@ function handler(event, context, callback) {
 
     try {
 
-      event.Records.forEach(eachRecord => {
+      for (let i = 0; i < event.Records.length; i++) {
+        let eachRecord = event.Records[i];
         // CloudWatch Logs data is base64 encoded so decode here
         let payload = new Buffer(eachRecord.kinesis.data, 'base64');
         logger.debug("payload:" + JSON.stringify(payload));
@@ -96,7 +97,7 @@ function handler(event, context, callback) {
               });
           }
         });
-      });
+      }
 
     } catch (e) {
       logger.error("Error:" + JSON.stringify(e));
@@ -126,7 +127,7 @@ function sendSplunkEvent(awslogsData, splunkLog, config) {
           resolve();
         });
     } else if (awslogsData.logGroup.indexOf("/aws/lambda/") === 0) {
-      utils.getCommonData(awslogsData)
+      utils.getCommonData(awslogsData, config)
         .then(commonData => {
           awslogsData.logEvents.forEach(logEvent => {
             utils.transformLambdaLogs(logEvent, commonData)

@@ -1,7 +1,7 @@
 import { Component, OnInit, Input, ElementRef, Renderer, Output, EventEmitter } from '@angular/core';
 import { DataCacheService , AuthenticationService , RequestService } from '../../core/services/index';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ViewChild } from '@angular/core/src/metadata/di';
+import { ViewChild } from '@angular/core';
 import { DropdownComponent } from './../../primary-components/dropdown/dropdown.component';
 import { environment } from './../../../environments/environment.oss';
 import { environment as env_internal } from './../../../environments/environment.internal';
@@ -13,17 +13,16 @@ import { environment as env_internal } from './../../../environments/environment
   styleUrls: ['./table-template.component.scss']
 })
 export class TableTemplateComponent implements OnInit {
-
   @Input() type: string = '';
   @Input() message: string = '';
   @Input() errcode:number;
 	@Input() header: Array<any>;
 	@Input() showFilters: boolean = false;
-	@Input() isfromservice: boolean = false;
-
+  @Input() isfromservice: boolean = false;
+  @Input() isSort: boolean = false;
   @Input() state: string = 'default';
   @Input() showPaginationtable: boolean = true;
-  @Input() currentlyActive: number = 1; 
+  @Input() currentlyActive: number = 1;
   @Input() totalPageNum: number = 12;
   @Output() onFilter:EventEmitter<boolean> = new EventEmitter<boolean>();
   @Output() refreshData:EventEmitter<boolean> = new EventEmitter<boolean>();
@@ -61,13 +60,13 @@ export class TableTemplateComponent implements OnInit {
 		}
 		return '';
   }
-  
+
   onRefresh(event){
     this.refreshData.emit(true);
   }
 
   resetInput(value,obj){
-    
+
     if(value=='name'){
       this.header[0].filter.value='';
     }
@@ -79,7 +78,7 @@ export class TableTemplateComponent implements OnInit {
     {
       this.header[4].filter.value='all';
       this.dropdown.notifyDropdown('all');
-    
+
     }
   }
   onFilterApplied(filter, column){
@@ -112,7 +111,7 @@ export class TableTemplateComponent implements OnInit {
   onSortColumn(col, rev){
     for (var i = 0; i < this.header.length; i++) {
       var colSort = this.header[i];
-    
+
       if (colSort.label == col.label) {
         colSort._reverse = this.mySort(col, rev);
         col._reverse = colSort._reverse;
@@ -122,6 +121,7 @@ export class TableTemplateComponent implements OnInit {
       }
     }
     this.onSort.emit({key:col.key, reverse: col._reverse})
+   // this.isload = false;
   };
    paginatePageInTable(clickedPage){
      switch(clickedPage){
@@ -150,17 +150,17 @@ export class TableTemplateComponent implements OnInit {
   constructor(elementRef: ElementRef, renderer: Renderer,private cache: DataCacheService, private request: RequestService , private router:Router, private authenticationservice:AuthenticationService) {
     this.http = request;
    }
- 
+
   public goToAbout(hash){
     this.router.navigateByUrl('landing');
     this.cache.set('scroll_flag',true);
     this.cache.set('scroll_id',hash);
  }
- 
+ isload:boolean = true;
  feedbackRes:boolean=false;
  openModal:boolean=false;
    feedbackMsg:string='';
-  //  feedbackResSuccess:boolean=false; 
+  //  feedbackResSuccess:boolean=false;
    feedbackResSuccess:boolean=false;
  feedbackResErr:boolean=false;
  isFeedback:boolean=false;
@@ -190,8 +190,8 @@ export class TableTemplateComponent implements OnInit {
     "TIME OF ERROR":this.errorTime,
     "LOGGED IN USER":this.errorUser
 }
-   
-   
+
+
        this.openModal=true;
        this.errorChecked=true;
        this.isLoading=false;
@@ -214,12 +214,12 @@ export class TableTemplateComponent implements OnInit {
      }
      errorIncluded(){
      }
-     
+
      showService(){
       this.onHere.emit(true);
     }
      submitFeedback(action){
-   
+
        this.errorChecked = (<HTMLInputElement>document.getElementById("checkbox-slack")).checked;
        if( this.errorChecked == true ){
         this.json = {
@@ -235,14 +235,14 @@ export class TableTemplateComponent implements OnInit {
          this.json = this.model.userFeedback ;
        }
        this.sjson = JSON.stringify(this.json);
-   
+
        this.isLoading = true;
-   
+
        if(action == 'DONE'){
          this.openModal=false;
          return;
        }
-   
+
        var payload={
          "title" : "Jazz: Issue reported by "+ this.authenticationservice.getUserId(),
          "project_id": env_internal.urls.internal_acronym,
@@ -261,7 +261,7 @@ export class TableTemplateComponent implements OnInit {
            this.feedbackResSuccess= true;
            if(respData != undefined && respData != null && respData != ""){
              this.feedbackMsg = "Thanks for reporting the issue. We’ll use your input to improve Jazz experience for everyone!";
-           } 
+           }
          },
          error => {
            this.buttonText='DONE';
@@ -283,18 +283,18 @@ export class TableTemplateComponent implements OnInit {
 			if (col.filter != undefined && col.filter['type'] == 'dropdown' && col.filter['data'] != undefined) {
         col.filter['data'].unshift('all')
         col.filter['value'] = 'all';
-        
+
       }
     }
 
-   
-    
+
+
     if(this.message == undefined)
       {
         this.err_disp = false;
       }
       else{this.err_disp=true;}
-    
+
   }
 
 }

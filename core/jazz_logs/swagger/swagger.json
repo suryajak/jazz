@@ -35,7 +35,7 @@
                 "application/json": "$input.json('$')"
               },
               "responseParameters": {
-                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,Jazz-Service-ID'",
                 "method.response.header.Access-Control-Allow-Methods": "'*'",
                 "method.response.header.Access-Control-Allow-Origin": "'*'"
               }
@@ -97,8 +97,7 @@
       },
       "post": {
         "description": "Post method swagger for Node template",
-        "parameters": [
-          {
+        "parameters": [{
             "name": "param",
             "in": "body",
             "description": "post body parameter.",
@@ -106,6 +105,12 @@
             "schema": {
               "$ref": "#/definitions/InputObj"
             }
+          },
+          {
+            "name": "Jazz-Service-ID",
+            "in": "header",
+            "required": true,
+            "type": "string"
           }
         ],
         "consumes": [
@@ -237,6 +242,11 @@
             }
           }
         },
+        "security": [
+          {
+            "{envPrefix}-{domain}-cognito-authorizer": []
+          }
+        ],
         "x-amazon-apigateway-integration": {
           "type": "aws",
           "uri": "arn:aws:apigateway:{conf-region}:lambda:path/2015-03-31/functions/arn:aws:lambda:{conf-region}:{conf-accId}:function:{lambda_function_name}/invocations",
@@ -253,7 +263,7 @@
                 "application/json": "$input.path('$.errorMessage')"
               },
               "responseParameters": {
-                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,Jazz-Service-ID'",
                 "method.response.header.Access-Control-Allow-Methods": "'*'",
                 "method.response.header.Access-Control-Allow-Origin": "'*'"
               }
@@ -264,7 +274,7 @@
                 "application/json": "$input.path('$.errorMessage')"
               },
               "responseParameters": {
-                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,Jazz-Service-ID'",
                 "method.response.header.Access-Control-Allow-Methods": "'*'",
                 "method.response.header.Access-Control-Allow-Origin": "'*'"
               }
@@ -275,7 +285,7 @@
                 "application/json": "{\"data\" : $input.json('$.data'),\"input\" : $input.json('$.input')}"
               },
               "responseParameters": {
-                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,Jazz-Service-ID'",
                 "method.response.header.Access-Control-Allow-Methods": "'*'",
                 "method.response.header.Access-Control-Allow-Origin": "'*'"
               }
@@ -286,7 +296,7 @@
                 "application/json": "$input.path('$.errorMessage')"
               },
               "responseParameters": {
-                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,Jazz-Service-ID'",
                 "method.response.header.Access-Control-Allow-Methods": "'*'",
                 "method.response.header.Access-Control-Allow-Origin": "'*'"
               }
@@ -297,7 +307,7 @@
                 "application/json": "$input.path('$.errorMessage')"
               },
               "responseParameters": {
-                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,Jazz-Service-ID'",
                 "method.response.header.Access-Control-Allow-Methods": "'*'",
                 "method.response.header.Access-Control-Allow-Origin": "'*'"
               }
@@ -308,13 +318,27 @@
                 "application/json": "$input.path('$.errorMessage')"
               },
               "responseParameters": {
-                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,Jazz-Service-ID'",
                 "method.response.header.Access-Control-Allow-Methods": "'*'",
                 "method.response.header.Access-Control-Allow-Origin": "'*'"
               }
             }
           }
         }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "{envPrefix}-{domain}-cognito-authorizer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "x-amazon-apigateway-authtype": "custom",
+      "x-amazon-apigateway-authorizer": {
+        "authorizerCredentials": "{conf-role}",
+        "authorizerResultTtlInSeconds": 0,
+        "authorizerUri": "arn:aws:apigateway:{conf-region}:lambda:path/2015-03-31/functions/arn:aws:lambda:{conf-region}:{conf-accId}:function:{envPrefix}_{domain}_cognito-authorizer_{envmnt}/invocations",
+        "type": "request"
       }
     }
   },
@@ -409,7 +433,7 @@
         "service",
         "domain",
         "environment",
-		"category"
+        "category"
       ],
       "properties": {
         "service": {
@@ -429,22 +453,35 @@
           "type": "string",
           "description": "Environment in which the service is deployed"
         },
-		"category": {
-		  "enum": [
+        "category": {
+          "enum": [
             "api",
-            "function"
+            "function",
+            "sls-app"
           ],
           "type": "string",
           "description": "Service type"
         },
-		"start_time": {
+        "asset_type": {
+          "enum": [
+            "lambda",
+            "apigateway"
+          ],
           "type": "string",
-		  "format": "date-time",
+          "description": "Asset Type of the service"
+        },
+        "asset_identifier": {
+          "type": "string",
+          "description": "Asset identifier of the service"
+        },        
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
           "description": "start time"
         },
         "end_time": {
           "type": "string",
-		  "format": "date-time",
+          "format": "date-time",
           "description": "end time"
         },
         "size": {
@@ -455,16 +492,16 @@
           "type": "number",
           "description": "Starting record number"
         },
-		"type": {
-		  "enum": [
-		    "warn",
-			"error",
-		    "info",
-		    "debug"		    
-		  ],
-		  "type": "string",
-		  "description": "log type"
-	    }
+        "type": {
+          "enum": [
+            "warn",
+            "error",
+            "info",
+            "debug"
+          ],
+          "type": "string",
+          "description": "log type"
+        }
       }
     },
     "OutputObj": {
@@ -480,7 +517,7 @@
                 "type": "string",
                 "description": "request id of the log message"
               },
-			  "timestamp": {
+              "timestamp": {
                 "type": "string",
                 "description": "time of the log message"
               },
@@ -489,12 +526,12 @@
                 "description": "log message"
               },
               "type": {
-			    "enum": [
-				 "debug",
-				 "info",
-				 "warn",
-				 "error"
-				],
+                "enum": [
+                  "debug",
+                  "info",
+                  "warn",
+                  "error"
+                ],
                 "type": "string",
                 "description": "log type"
               }
