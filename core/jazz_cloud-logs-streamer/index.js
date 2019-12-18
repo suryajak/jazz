@@ -65,6 +65,7 @@ module.exports.handler = (input, context, cb) => {
 
                 if (failedItems && failedItems.length > 0) {
                     logger.error("Failed Items: " + JSON.stringify(failedItems, null, 2));
+                    return cb(JSON.stringify(errorHandler.throwInputValidationError("101", "Username not provided")));
                 }
 
                 context.fail(JSON.stringify(error));

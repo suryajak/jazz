@@ -10,15 +10,18 @@
         "test": "mocha"
     },
     "dependencies": {
-        "amazon-cognito-identity-js": "^1.19.0"
+        "amazon-cognito-identity-js": "^1.31.0",
+        "app-module-path": "^2.2.0"
     },
     "devDependencies": {
-        "aws-lambda-mock-context": "^3.1.1",
+        "aws-lambda-mock-context": "^3.2.1",
         "aws-sdk": "*",
         "chai": "^3.5.0",
-        "mocha": "^3.5.3",
+        "json-loader": "^0.5.7",
         "lambda-local": "^1.4.2",
-        "sinon": "1.17.7",
-        "nyc": "^11.3.0"
+        "mocha": "^3.5.3",
+        "nyc": "^11.3.0",
+        "sinon": "^1.17.7",
+        "webpack": "^4.41.2"
     }
 }
