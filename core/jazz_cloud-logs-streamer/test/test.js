@@ -16,13 +16,24 @@
 
 const assert = require('chai').assert;
 const index = require('../index');
+const awsContext = require('aws-lambda-mock-context');
 
+  //Setting up default values for the aws event and context needed for handler params
 describe('Sample', function () {
 
-    it('tests handler', function (done) {
+    beforeEach(function(){
+        input = { "file" : "example"};
+        context = awsContext();
+        cb = (value) => {
+          return value;
+        };
+      });
 
-        //Test cases to be added here.
-        assert(true);
+    it('should throw a 101 error for failed items', function (done) {
+        input.file = undefined;
+        var bool = index.handler(input,context,cb).includes("101") &&
+        index.handler(input,context,cb).includes("Failed Items");
+        assert(bool);
         done();
     });
 });
