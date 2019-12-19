@@ -17,12 +17,19 @@
 const assert = require('chai').assert;
 const index = require('../index');
 const awsContext = require('aws-lambda-mock-context');
+const StreamZip = require('node-stream-zip');
+
+const zip = 
 
   //Setting up default values for the aws event and context needed for handler params
 describe('Sample', function () {
 
     beforeEach(function(){
-        input = { "file" : "example"};
+        input = { "file" : new StreamZip({
+            file: 'helloWorld.js.zip',
+            storeEntries: true
+        })
+    }
         context = awsContext();
         cb = (value) => {
           return value;
@@ -36,4 +43,4 @@ describe('Sample', function () {
         assert(bool);
         done();
     });
-});
+}); 
