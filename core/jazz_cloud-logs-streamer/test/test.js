@@ -46,7 +46,11 @@ describe('Sample', function () {
     });
 
     it('tests handler', function (done) {
-        //context = undefined;
+
+        var error = function(error, explicit) {}
+
+        context.done(error);
+
         var bool = index.handler(input, context, cb).includes("100") &&
             index.handler(input, context, cb).includes("Context Failed Error");
 
