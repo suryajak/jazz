@@ -17,30 +17,25 @@
 const assert = require('chai').assert;
 const index = require('../index');
 const awsContext = require('aws-lambda-mock-context');
-const StreamZip = require('node-stream-zip');
+var AWS = require('aws-sdk');
+var cwl = new AWS.CloudWatchLogs({apiVersion: '2014-03-28'});
 
-const zip = 
-
-  //Setting up default values for the aws event and context needed for handler params
 describe('Sample', function () {
 
     beforeEach(function(){
-        input =  new StreamZip({
-            file: 'helloWorld.js.zip',
-            storeEntries: true
-        })
-
+        input = cwl;
         context = awsContext();
         cb = (value) => {
           return value;
         };
       });
 
-    it('should throw a 101 error for failed items', function (done) {
-        input.file = undefined;
-        var bool = index.handler(input,context,cb).includes("101") &&
-        index.handler(input,context,cb).includes("Failed Items");
+    it('tests handler', function (done) {
+        context = undefined;
+        var bool = index.handler(input,context,cb).includes("100") &&
+        index.handler(input,context,cb).includes("Context Failed Error");
+    
         assert(bool);
         done();
     });
-}); 
+});

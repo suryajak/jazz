@@ -10,6 +10,7 @@
         "test": "mocha"
     },
     "dependencies": {
+        "aws-sdk": "^2.595.0",
         "node-stream-zip": "^1.8.2",
         "unicode-byte-truncate": "^1.0.0"
     },
