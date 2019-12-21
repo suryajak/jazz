@@ -25,11 +25,11 @@ const zip =
 describe('Sample', function () {
 
     beforeEach(function(){
-        input = { "file" : new StreamZip({
+        input =  new StreamZip({
             file: 'helloWorld.js.zip',
             storeEntries: true
         })
-    }
+
         context = awsContext();
         cb = (value) => {
           return value;
