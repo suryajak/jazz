@@ -18,23 +18,38 @@ const assert = require('chai').assert;
 const index = require('../index');
 const awsContext = require('aws-lambda-mock-context');
 var AWS = require('aws-sdk');
-var cwl = new AWS.CloudWatchLogs({apiVersion: '2014-03-28'});
+var cwl = new AWS.CloudWatchLogs({ apiVersion: '2014-03-28' });
+
+/*var params = {
+    destinationArn: 'LAMBDA_FUNCTION_ARN',
+    filterName: 'FILTER_NAME',
+    filterPattern: 'ERROR',
+    logGroupName: 'LOG_GROUP',
+};
+
+cwl.putSubscriptionFilter(params, function (err, data) {
+    if (err) {
+        console.log("Error", err);
+    } else {
+        console.log("Success", data);
+    }
+});*/
 
 describe('Sample', function () {
 
-    beforeEach(function(){
+    beforeEach(function () {
         input = cwl;
         context = awsContext();
         cb = (value) => {
-          return value;
+            return value;
         };
-      });
+    });
 
     it('tests handler', function (done) {
-        context = undefined;
-        var bool = index.handler(input,context,cb).includes("100") &&
-        index.handler(input,context,cb).includes("Context Failed Error");
-    
+        //context = undefined;
+        var bool = index.handler(input, context, cb).includes("100") &&
+            index.handler(input, context, cb).includes("Context Failed Error");
+
         assert(bool);
         done();
     });
