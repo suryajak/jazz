@@ -52,6 +52,7 @@ var getInfo = function (messages, patternStr) {
 	if (messages) {
 		for (var i = 0, len = messages.length; i < len; i++) {
 			var _tmp = pattern.exec(messages[i].message);
+			console.log(messages[i].message)
 			if (_tmp && _tmp[1]) {
 				logger.debug("found match..:" + _tmp[1]);
 				result = _tmp[1];
@@ -82,6 +83,7 @@ var hmac = function (key, str, encoding) {
 var hash = function (str, encoding) {
 	return crypto.createHash('sha256').update(str, 'utf8').digest(encoding);
 }
+
 
 module.exports = () => {
 	return {
