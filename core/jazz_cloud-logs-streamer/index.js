@@ -41,9 +41,8 @@ module.exports.handler = (input, context, cb) => {
 
     // decompress the input
     zlib.gunzip(zippedInput, function (error, buffer) {
-        if (error) { context.fail(error); 
-            return callback(JSON.stringify(errorHandler.throwNotFoundError("100", "Context Failed Error")));
-        }
+        if (error) { context.fail(error); return; }
+
         // parse the input from JSON
         var awslogsData = JSON.parse(buffer.toString('utf8'));
 

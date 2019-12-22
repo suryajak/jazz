@@ -14,47 +14,27 @@
 // limitations under the License.
 // =========================================================================
 
-const assert = require('chai').assert;
-const index = require('../index');
-const awsContext = require('aws-lambda-mock-context');
-var AWS = require('aws-sdk');
-var cwl = new AWS.CloudWatchLogs({ apiVersion: '2014-03-28' });
+const expect = require('chai').expect;
+const utils = require("../components/utils");
 
-/*var params = {
-    destinationArn: 'LAMBDA_FUNCTION_ARN',
-    filterName: 'FILTER_NAME',
-    filterPattern: 'ERROR',
-    logGroupName: 'LOG_GROUP',
-};
 
-cwl.putSubscriptionFilter(params, function (err, data) {
-    if (err) {
-        console.log("Error", err);
-    } else {
-        console.log("Success", data);
-    }
-});*/
-
-describe('Sample', function () {
-
-    beforeEach(function () {
-        input = cwl;
-        context = awsContext();
-        cb = (value) => {
-            return value;
-        };
-    });
-
-    it('tests handler', function (done) {
-
-        var error = function(error, explicit) {}
-
-        context.done(error);
-
-        var bool = index.handler(input, context, cb).includes("100") &&
-            index.handler(input, context, cb).includes("Context Failed Error");
-
-        assert(bool);
-        done();
+describe('jazz_cloud-logs-streamer', function () {
+    describe('utils', () => {
+        describe('isNumeric', function () {
+            it('should indicate a valid numeric value', function () {
+                expect(utils().isNumeric(25.6)).to.equal(true);
+            });
+        });
+        describe('hash', function () {
+            it('should encode surya using hex', function () {
+                expect(utils().hash('surya', 'hex')).to.equal('ea1b9d779a37fa378d87c40dd6a56fcd491a7c9bef3a1f6e40228031bf00ac68');
+            });
+            it('should encode surya using base-64', function () {
+                expect(utils().hash('surya', 'base64')).to.equal('6hudd5o3+jeNh8QN1qVvzUkafJvvOh9uQCKAMb8ArGg=');
+            });
+            it('should encode surya using binary', function () {
+                expect(utils().hash('surya', 'binary')).to.equal('6hudd5o3+jeNh8QN1qVvzUkafJvvOh9uQCKAMb8ArGg=');
+            });
+        });
     });
 });
