@@ -17,7 +17,6 @@
 const expect = require('chai').expect;
 const utils = require("../components/utils");
 
-
 describe('jazz_cloud-logs-streamer', function () {
     describe('utils', () => {
         describe('isNumeric', function () {
