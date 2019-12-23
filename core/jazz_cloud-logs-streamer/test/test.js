@@ -50,8 +50,8 @@ describe('jazz_cloud-logs-streamer', function () {
     describe('index', () => {
         describe('buildSource', function () {
             it('should return proper buildsource', function () {
-                var log = '127.0.0.1 - frank [10/Oct/2000:13:25:15 -0700] \\"GET /index.html HTTP/1.0\\" 404 1534';
-                var extractedFields = '{"$status_code": "404", "$request": "GET /products/index.html HTTP/1.0", "$7": "1534", "$4": "10/Oct/2000:13:25:15 -0700", "$3": "frank","$2": "-", "$1": "127.0.0.1"}'
+                var log = '127.0.0.1 - frank [10/Oct/2000:13:25:15 -0700] "GET /apache_pb.gif HTTP/1.0" 200 1534';
+                var extractedFields = "[..., request=*.html*, status_code=4*,]"
                 console.log("!!!!!!!!" + index.buildSource(log, extractedFields));
             });
         });
