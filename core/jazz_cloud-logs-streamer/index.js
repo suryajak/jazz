@@ -327,4 +327,11 @@ function buildRequest(endpoint, body) {
     return request;
 }
 
+const exportable = {
+    buildRequest,
+    post,
+    buildSource,
+    transform
+  };
 
+  module.exports = exportable;

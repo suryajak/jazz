@@ -16,6 +16,7 @@
 
 const expect = require('chai').expect;
 const utils = require("../components/utils");
+const index = require("../index");
 
 describe('jazz_cloud-logs-streamer', function () {
     describe('utils', () => {
@@ -38,17 +39,20 @@ describe('jazz_cloud-logs-streamer', function () {
             });*/
         });
         describe('isValidJson', function () {
-            it('should indicate a valid numeric value', function () {
-                expect(utils().isValidJson('{ "name": "Surya", "age": 22 }')).to.equal(true);
+            it('should indicate a valid JSON', function () {
+                var json = '{ "Version": "2012-10-17","Statement": [{"Sid": "","Effect": "Allow","Principal": {"Service": "cloudtrail.amazonaws.com"},"Action": "sts:AssumeRole"}]}';
+                expect(utils().isValidJson(json)).to.equal(true);
             });
         });
         //Need to write tests for getInfo function in utils. first attempt: utils().getInfo('09-09-2018', "\d\d-\d\d-\d\d\d\d")
 
     });
-    describe('utils', () => {
-        describe('isNumeric', function () {
-            it('should indicate a valid numeric value', function () {
-                expect(utils().isNumeric(25.6)).to.equal(true);
+    describe('index', () => {
+        describe('buildSource', function () {
+            it('should return proper buildsource', function () {
+                var log = '127.0.0.1 - frank [10/Oct/2000:13:25:15 -0700] \\"GET /index.html HTTP/1.0\\" 404 1534';
+                var extractedFields = '{"$status_code": "404", "$request": "GET /products/index.html HTTP/1.0", "$7": "1534", "$4": "10/Oct/2000:13:25:15 -0700", "$3": "frank","$2": "-", "$1": "127.0.0.1"}'
+                console.log("!!!!!!!!" + index.buildSource(log, extractedFields));
             });
         });
     });
