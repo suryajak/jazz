@@ -5,8 +5,7 @@
     "main": "index.js",
     "private": true,
     "author": [],
-    "scripts": {
-        "start": "node index",
+    "scripts": {  
         "test": "mocha"
     },
     "dependencies": {

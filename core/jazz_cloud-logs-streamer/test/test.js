@@ -52,7 +52,7 @@ describe('jazz_cloud-logs-streamer', function () {
             it('should return proper buildsource', function () {
                 var log = '127.0.0.1 - frank [10/Oct/2000:13:25:15 -0700] "GET /apache_pb.gif HTTP/1.0" 200 1534';
                 var extractedFields = "[..., request=*.html*, status_code=4*,]"
-                console.log("!!!!!!!!" + index.buildSource(log, extractedFields));
+                index.buildSource(log, extractedFields);
             });
         });
     });
