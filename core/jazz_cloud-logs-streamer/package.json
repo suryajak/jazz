@@ -6,7 +6,6 @@
     "private": true,
     "author": [],
     "scripts": {
-        "start": "node index",
         "test": "mocha"
     },
     "dependencies": {
