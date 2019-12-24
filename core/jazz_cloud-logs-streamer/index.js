@@ -206,10 +206,9 @@ function buildSource(message, extractedFields) {
         var source = {};
 
         for (var key in extractedFields) {
-            //logger.debug("key from buildSource..:" + JSON.stringify(key));
+            logger.debug("key from buildSource..:" + JSON.stringify(key));
             if (extractedFields.hasOwnProperty(key) && extractedFields[key]) {
                 var value = extractedFields[key];
-                logger.debug("value from buildSource..:" + JSON.stringify(value));
                 if (utils.isNumeric(value)) {
                     source[key] = 1 * value;
                     continue;
