@@ -86,12 +86,17 @@ describe('jazz_cloud-logs-streamer', function () {
 
     });
     describe('index', () => {
+        //var log = '127.0.0.1 - frank [10/Oct/2000:13:25:15 -0700] "GET /apache_pb.gif HTTP/1.0" 200 1534';
+        //var extractedFields = '{ $.latency = * }'
         describe('buildSource', function () {
-            it('should return proper buildsource', function () {
-                var log = '127.0.0.1 - frank [10/Oct/2000:13:25:15 -0700] "GET /apache_pb.gif HTTP/1.0" 200 1534';
-                var extractedFields = "[..., request=*.html*, status_code=4*,]"
-                index.buildSource(log, extractedFields);
+            it('should return {} for empty message and empty extracted fields', function () {
+                expect(index.buildSource("", "")).to.deep.equal({});
             });
+            it("should return parsed JSON", function () {
+                var json = '{"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"Service":"cloudtrail.amazonaws.com"},"Action":"sts:AssumeRole"}]}';
+                expect(JSON.stringify(index.buildSource(json, ""))).to.equal(json);
+            });
+            
         });
     });
 });
