@@ -31,8 +31,23 @@ describe('jazz_cloud-logs-streamer', function () {
             it('should indicate a valid numeric value', function () {
                 expect(utils().isNumeric(25.6)).to.equal(true);
             });
-            //negative test for isNumeric Function
-            it('should indicate a false numeric value', function () {
+
+            // test for isNumeric Function passing negative float value
+            it('should indicate a valid numeric value for negative number', function () {
+                expect(utils().isNumeric(-25.6)).to.equal(true);
+            });
+
+            // test for isNumeric Function passing 0 value
+            it('should indicate a valid numeric value for 0 value', function () {
+                expect(utils().isNumeric(0)).to.equal(true);
+            });
+
+            // test for isNumeric Function passing big integer value
+            it('should indicate a valid numeric value for a big integer', function () {
+                expect(utils().isNumeric(Math.floor(100000000 + Math.random() * 900000000))).to.equal(true);
+            });
+            //negative test for isNumeric Function passing string
+            it('should not indicate a false numeric value for string', function () {
                 expect(utils().isNumeric("hello")).to.equal(false);
             });
 
@@ -86,8 +101,7 @@ describe('jazz_cloud-logs-streamer', function () {
 
     });
     describe('index', () => {
-        //var log = '127.0.0.1 - frank [10/Oct/2000:13:25:15 -0700] "GET /apache_pb.gif HTTP/1.0" 200 1534';
-        //var extractedFields = '{ $.latency = * }'
+        
         describe('buildSource', function () {
             it('should return {} for empty message and empty extracted fields', function () {
                 expect(index.buildSource("", "")).to.deep.equal({});
@@ -181,8 +195,15 @@ describe('jazz_cloud-logs-streamer', function () {
                 expect(index.transform(payload)).to.equal(null);
             });
             it('should return expected bulkBodyRequest for /aws/lambda/', function () {
-                var expectedReturn = "{\"index\":{\"_index\":\"applicationlogs\",\"_type\":\"Logs\",\"_id\":\"34299932504098067999982349861750949931928054373571100672\"}}\n{\"request_id\":\"1f08c356-c26a-11e8-817c-373a13df2581\",\"environment\":\"Logs\",\"servicename\":\",API-Gateway-Execution\",\"platform_log_group\":[\"/aws/lambda/\",\"API-Gateway-Execution-Logs\"],\"platform_log_stream\":\"\",\"timestamp\":\"2018-09-27T15:29:27.822Z\",\"message\":\"2018-09-27T15:29:27.822Z, verbose \\t', , [object Object]\",\"log_level\":\"INFO\"}\n{\"index\":{\"_index\":\"applicationlogs\",\"_type\":\"Logs\",\"_id\":\"34299932504098067999982349861750949931928054373571100673\"}}\n{\"request_id\":\"1f08c356-c26a-11e8-817c-373a13df2581\",\"environment\":\"Logs\",\"servicename\":\",API-Gateway-Execution\",\"platform_log_group\":[\"/aws/lambda/\",\"API-Gateway-Execution-Logs\"],\"platform_log_stream\":\"\",\"timestamp\":\"2018-09-27T15:29:27.822Z\",\"message\":\"END RequestId: 1f08c356-c26a-11e8-817c-373a13df2581\",\"log_level\":\"INFO\"}\n";
-                expect(index.transform(payload)).to.equal(expectedReturn);
+                var expectedReturnLamba = "{\"index\":{\"_index\":\"applicationlogs\",\"_type\":\"Logs\",\"_id\":\"34299932504098067999982349861750949931928054373571100672\"}}\n{\"request_id\":\"1f08c356-c26a-11e8-817c-373a13df2581\",\"environment\":\"Logs\",\"servicename\":\",API-Gateway-Execution\",\"platform_log_group\":[\"/aws/lambda/\",\"API-Gateway-Execution-Logs\"],\"platform_log_stream\":\"\",\"timestamp\":\"2018-09-27T15:29:27.822Z\",\"message\":\"2018-09-27T15:29:27.822Z, verbose \\t', , [object Object]\",\"log_level\":\"INFO\"}\n{\"index\":{\"_index\":\"applicationlogs\",\"_type\":\"Logs\",\"_id\":\"34299932504098067999982349861750949931928054373571100673\"}}\n{\"request_id\":\"1f08c356-c26a-11e8-817c-373a13df2581\",\"environment\":\"Logs\",\"servicename\":\",API-Gateway-Execution\",\"platform_log_group\":[\"/aws/lambda/\",\"API-Gateway-Execution-Logs\"],\"platform_log_stream\":\"\",\"timestamp\":\"2018-09-27T15:29:27.822Z\",\"message\":\"END RequestId: 1f08c356-c26a-11e8-817c-373a13df2581\",\"log_level\":\"INFO\"}\n";
+                expect(index.transform(payload)).to.equal(expectedReturnLamba);
+            });
+            it('should return expected bulkBodyRequest for API-Gateway-Execution-Logs', function () {
+                payload.logGroup = ['API-Gateway-Execution-Logs', '/aws/lambda/'];
+                var date = new Date();
+                var expectedReturnAPIGateway = "{\"index\":{\"_index\":\"apilogs\",\"_type\":\"\",\"_id\":\"\"}}\n{\"timestamp\":" + JSON.stringify(date) + ",\"platform_log_group\":[\"API-Gateway-Execution-Logs\",\"/aws/lambda/\"],\"platform_log_stream\":\"\",\"environment\":\"\",\"request_id\":\"\",\"method\":\"GET\",\"domain\":\"\",\"servicename\":\"\",\"path\":\"\",\"application_logs_id\":\"\",\"origin\":\"\",\"host\":\"\",\"user_agent\":\"\",\"x_forwarded_port\":\"\",\"x_forwarded_for\":\"\",\"x_amzn_trace_id\":\"\",\"content_type\":\"\",\"cache_control\":\"\",\"log_level\":\"INFO\",\"status\":\"\"}\n";
+                //console.log(JSON.stringify(index.transform(payload)));
+                expect(index.transform(payload)).to.equal(expectedReturnAPIGateway);
             });
         });
     });
