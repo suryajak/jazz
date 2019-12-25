@@ -96,7 +96,55 @@ describe('jazz_cloud-logs-streamer', function () {
                 var json = '{"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"Service":"cloudtrail.amazonaws.com"},"Action":"sts:AssumeRole"}]}';
                 expect(JSON.stringify(index.buildSource(json, ""))).to.equal(json);
             });
-            
+
+            it("should return Extracted fields with key value pairs with no json values", function () {
+
+                var extractedFieldsInputParameter = {
+                    "$status_code": "404",
+                    "$request": "GET /products/index.html HTTP/1.0",
+                    "$7": "1534",
+                    "$4": "10/Oct/2000:13:25:15 -0700",
+                    "$3": "frank",
+                    "$2": "-",
+                    "$1": "127.0.0.1"
+                };
+
+                expect(index.buildSource('', extractedFieldsInputParameter)).to.deep.equal({
+                    "$status_code": 404,
+                    "$request": "GET /products/index.html HTTP/1.0",
+                    "$7": 1534,
+                    "$4": "10/Oct/2000:13:25:15 -0700",
+                    "$3": "frank",
+                    "$2": "-",
+                    "$1": "127.0.0.1"
+                });
+            });
+            it("should return Extracted fields with key value pairs having json values", function () {
+
+                var extractedFieldsInputParameter = {
+                    "$status_code": "404",
+                    "$request": "GET /products/index.html HTTP/1.0",
+                    "$7": "1534",
+                    "$4": "10/Oct/2000:13:25:15 -0700",
+                    "$3": "frank",
+                    "tags": '{"tagA": "valueA","tagB": "valueB","tagC": "valueC"}',
+                    "$2": "-",
+                    "$1": "127.0.0.1"
+                };
+
+                expect(index.buildSource('', extractedFieldsInputParameter)).to.deep.equal({
+                    "$status_code": 404,
+                    "$request": "GET /products/index.html HTTP/1.0",
+                    "$7": 1534,
+                    "$4": "10/Oct/2000:13:25:15 -0700",
+                    '$tags': { tagA: 'valueA', tagB: 'valueB', tagC: 'valueC' },
+                    "tags": '{"tagA": "valueA","tagB": "valueB","tagC": "valueC"}',
+                    "$3": "frank",
+                    "$2": "-",
+                    "$1": "127.0.0.1"
+                });
+                
+            });
         });
     });
 });
