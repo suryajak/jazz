@@ -143,26 +143,49 @@ describe('jazz_cloud-logs-streamer', function () {
                     "$2": "-",
                     "$1": "127.0.0.1"
                 });
-                
+
             });
         });
 
         describe('transform', function () {
 
-            beforeEach(function(){
-                payload = { "messageType" : 'DATA_MESSAGE',
-                          "logGroup" : ['/aws/lambda/', 'API-Gateway-Execution-Logs'],
-                          "logEvents" : [],
-                          "logStream" : ""
-                        };
-              })
+            beforeEach(function () {
+                payload = {
+                    "messageType": 'DATA_MESSAGE',
+                    "logGroup": ['/aws/lambda/', 'API-Gateway-Execution-Logs'],
+                    "logEvents": [{
+                        "id": "34299932504098067999982349861750949931928054373571100672",
+                        "timestamp": 1538062167822,
+                        "message": "2018-09-27T15:29:27.822Z\t1f08c356-c26a-11e8-817c-373a13df2581\t2018-09-27T15:29:27.822Z, verbose \t', , [object Object]\n"
+                    },
+                    {
+                        "id": "34299932504098067999982349861750949931928054373571100673",
+                        "timestamp": 1538062167822,
+                        "message": "END RequestId: 1f08c356-c26a-11e8-817c-373a13df2581\n"
+                    },
+                    {
+                        "id": "34299932504098067999982349861750949931928054373571100674",
+                        "timestamp": 1538062167822,
+                        "message": "REPORT RequestId: 1f08c356-c26a-11e8-817c-373a13df2581\tDuration: 8.93 ms\tBilled Duration: 100 ms \tMemory Size: 256 MB\tMax Memory Used: 19 MB\t\n"
+                    }
+                    ],
+                    "logStream": ""
+                };
+            })
 
             it('should return null value when passing CONTROL_MESSAGE', function () {
                 payload.messageType = "CONTROL_MESSAGE";
                 expect(index.transform(payload)).to.equal(null);
             });
-            it('should return null if logGroup[0] is other than /aws/lambda/ or API-Gateway-Execution-Logs', function(){
+            it('should return null if logGroup[0] is other than /aws/lambda/ or API-Gateway-Execution-Logs', function () {
                 payload.logGroup[0] = "";
+                expect(index.transform(payload)).to.equal(null);
+            });
+            it('should return null if data.request_id equals empty string', function () {
+                payload.logEvents=[''];
+                expect(index.transform(payload)).to.equal(null);
+            });
+            it('testtesttest', function () {
                 expect(index.transform(payload)).to.equal(null);
             });
         });
