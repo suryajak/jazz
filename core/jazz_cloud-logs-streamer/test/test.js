@@ -146,5 +146,25 @@ describe('jazz_cloud-logs-streamer', function () {
                 
             });
         });
+
+        describe('transform', function () {
+
+            beforeEach(function(){
+                payload = { "messageType" : 'DATA_MESSAGE',
+                          "logGroup" : ['/aws/lambda/', 'API-Gateway-Execution-Logs'],
+                          "logEvents" : [],
+                          "logStream" : ""
+                        };
+              })
+
+            it('should return null value when passing CONTROL_MESSAGE', function () {
+                payload.messageType = "CONTROL_MESSAGE";
+                expect(index.transform(payload)).to.equal(null);
+            });
+            it('should return null if logGroup[0] is other than /aws/lambda/ or API-Gateway-Execution-Logs', function(){
+                payload.logGroup[0] = "";
+                expect(index.transform(payload)).to.equal(null);
+            });
+        });
     });
 });

@@ -83,7 +83,7 @@ function transform(payload) {
     if (payload.messageType === 'CONTROL_MESSAGE') {
         return null;
     }
-    logger.info("Raw payload..:" + JSON.stringify(payload));
+    //logger.info("Raw payload..:" + JSON.stringify(payload));
     var bulkRequestBody = '';
     var data = {};
     if (payload.logGroup.indexOf("API-Gateway-Execution-Logs") === 0) { // API logs goes here
@@ -133,7 +133,7 @@ function transform(payload) {
             JSON.stringify(data),
         ].join('\n') + '\n';
 
-        logger.debug("bulkRequestBody-API-Gateway_exe..:" + bulkRequestBody);
+         logger.debug("bulkRequestBody-API-Gateway_exe..:" + bulkRequestBody);
         return bulkRequestBody;
 
     } else if (payload.logGroup.indexOf("/aws/lambda/") === 0) { // Lambda logs goes here
