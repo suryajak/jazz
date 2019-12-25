@@ -140,7 +140,6 @@ function transform(payload) {
 
         data = {};
         data.request_id = utils.getInfo(payload.logEvents, globalConfig.PATTERNS.Lambda_request_id);
-        console.log("!!!!!!!!! " + data.request_id);
         if (data.request_id) {
             data.environment = utils.getSubInfo(payload.logGroup, globalConfig.PATTERNS.Lambda_environment, 2);
             var domainAndservice;
@@ -194,7 +193,7 @@ function transform(payload) {
             } else {
                 logger.error("invalid lambda logs event..: " + JSON.stringify(payload));
             }
-            logger.debug("bulkRequestBody-/aws/lambda/..:" + bulkRequestBody);
+            logger.debug("bulkRequestBody-/aws/lambda/..: \n" + bulkRequestBody);
             return bulkRequestBody;
         } else
             return null;

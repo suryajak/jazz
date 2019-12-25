@@ -162,11 +162,6 @@ describe('jazz_cloud-logs-streamer', function () {
                         "id": "34299932504098067999982349861750949931928054373571100673",
                         "timestamp": 1538062167822,
                         "message": "END RequestId: 1f08c356-c26a-11e8-817c-373a13df2581\n"
-                    },
-                    {
-                        "id": "34299932504098067999982349861750949931928054373571100674",
-                        "timestamp": 1538062167822,
-                        "message": "REPORT RequestId: 1f08c356-c26a-11e8-817c-373a13df2581\tDuration: 8.93 ms\tBilled Duration: 100 ms \tMemory Size: 256 MB\tMax Memory Used: 19 MB\t\n"
                     }
                     ],
                     "logStream": ""
@@ -182,11 +177,12 @@ describe('jazz_cloud-logs-streamer', function () {
                 expect(index.transform(payload)).to.equal(null);
             });
             it('should return null if data.request_id equals empty string', function () {
-                payload.logEvents=[''];
+                payload.logEvents = [''];
                 expect(index.transform(payload)).to.equal(null);
             });
-            it('testtesttest', function () {
-                expect(index.transform(payload)).to.equal(null);
+            it('should return expected bulkBodyRequest for /aws/lambda/', function () {
+                var expectedReturn = "{\"index\":{\"_index\":\"applicationlogs\",\"_type\":\"Logs\",\"_id\":\"34299932504098067999982349861750949931928054373571100672\"}}\n{\"request_id\":\"1f08c356-c26a-11e8-817c-373a13df2581\",\"environment\":\"Logs\",\"servicename\":\",API-Gateway-Execution\",\"platform_log_group\":[\"/aws/lambda/\",\"API-Gateway-Execution-Logs\"],\"platform_log_stream\":\"\",\"timestamp\":\"2018-09-27T15:29:27.822Z\",\"message\":\"2018-09-27T15:29:27.822Z, verbose \\t', , [object Object]\",\"log_level\":\"INFO\"}\n{\"index\":{\"_index\":\"applicationlogs\",\"_type\":\"Logs\",\"_id\":\"34299932504098067999982349861750949931928054373571100673\"}}\n{\"request_id\":\"1f08c356-c26a-11e8-817c-373a13df2581\",\"environment\":\"Logs\",\"servicename\":\",API-Gateway-Execution\",\"platform_log_group\":[\"/aws/lambda/\",\"API-Gateway-Execution-Logs\"],\"platform_log_stream\":\"\",\"timestamp\":\"2018-09-27T15:29:27.822Z\",\"message\":\"END RequestId: 1f08c356-c26a-11e8-817c-373a13df2581\",\"log_level\":\"INFO\"}\n";
+                expect(index.transform(payload)).to.equal(expectedReturn);
             });
         });
     });
