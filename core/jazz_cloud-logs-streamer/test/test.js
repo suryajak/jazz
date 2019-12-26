@@ -16,10 +16,28 @@
 
 const expect = require('chai').expect;
 const assert = require('chai').assert;
+//const awsContext = require('aws-lambda-mock-context');
 const utils = require("../components/utils");
 const index = require("../index");
+var PassThrough = require('stream').PassThrough;
+const configObj = require('../components/config.js');
 
-describe('jazz_cloud-logs-streamer', function () {
+describe('jazz_cloud-logs-streamer Handler', function () {
+    beforeEach(function () {
+        input = {
+            "awslogs": {
+                "data": ""
+            }
+        };
+        //context = awsContext();
+        cb = (value) => {
+            return value;
+        };
+    });
+
+    it('should return undefined value when invalid input is passed', function () {
+        //xpect(index.handler(input, context, cb)).to.equal(undefined);
+    });
     describe('utils', () => {
         // Tests for the isNumeric private function in utils.js
         describe('isNumeric', function () {
@@ -100,8 +118,9 @@ describe('jazz_cloud-logs-streamer', function () {
         //Need to write tests for getInfo function in utils. first attempt: utils().getInfo('09-09-2018', "\d\d-\d\d-\d\d\d\d")
 
     });
+
     describe('index', () => {
-        
+
         describe('buildSource', function () {
             it('should return {} for empty message and empty extracted fields', function () {
                 expect(index.buildSource("", "")).to.deep.equal({});
@@ -200,10 +219,102 @@ describe('jazz_cloud-logs-streamer', function () {
             });
             it('should return expected bulkBodyRequest for API-Gateway-Execution-Logs', function () {
                 payload.logGroup = ['API-Gateway-Execution-Logs', '/aws/lambda/'];
-                var date = new Date();
-                var expectedReturnAPIGateway = "{\"index\":{\"_index\":\"apilogs\",\"_type\":\"\",\"_id\":\"\"}}\n{\"timestamp\":" + JSON.stringify(date) + ",\"platform_log_group\":[\"API-Gateway-Execution-Logs\",\"/aws/lambda/\"],\"platform_log_stream\":\"\",\"environment\":\"\",\"request_id\":\"\",\"method\":\"GET\",\"domain\":\"\",\"servicename\":\"\",\"path\":\"\",\"application_logs_id\":\"\",\"origin\":\"\",\"host\":\"\",\"user_agent\":\"\",\"x_forwarded_port\":\"\",\"x_forwarded_for\":\"\",\"x_amzn_trace_id\":\"\",\"content_type\":\"\",\"cache_control\":\"\",\"log_level\":\"INFO\",\"status\":\"\"}\n";
-                //console.log(JSON.stringify(index.transform(payload)));
-                expect(index.transform(payload)).to.equal(expectedReturnAPIGateway);
+                var expectedReturnAPIGatewayToJson = index.transform(payload);
+                var splitArray = expectedReturnAPIGatewayToJson.split("\n");
+                var timeStamp = JSON.parse(splitArray[1]).timestamp;
+                var expectedReturnAPIGateway = "{\"index\":{\"_index\":\"apilogs\",\"_type\":\"\",\"_id\":\"\"}}\n{\"timestamp\":\"" + timeStamp + "\",\"platform_log_group\":[\"API-Gateway-Execution-Logs\",\"/aws/lambda/\"],\"platform_log_stream\":\"\",\"environment\":\"\",\"request_id\":\"\",\"method\":\"GET\",\"domain\":\"\",\"servicename\":\"\",\"path\":\"\",\"application_logs_id\":\"\",\"origin\":\"\",\"host\":\"\",\"user_agent\":\"\",\"x_forwarded_port\":\"\",\"x_forwarded_for\":\"\",\"x_amzn_trace_id\":\"\",\"content_type\":\"\",\"cache_control\":\"\",\"log_level\":\"INFO\",\"status\":\"\"}\n";
+                expect(JSON.stringify(index.transform(payload))).to.equal(JSON.stringify(expectedReturnAPIGateway));
+            });
+        });
+
+        describe('post', () => {
+            let payload, expected, response, request, data;
+            beforeEach(function () {
+                payload = {
+                    "host": config.ES_ENDPOINT,
+                    "method": "POST",
+                    "path": "/_bulk",
+                    "body": "Sample data",
+                    "headers": {
+                        "Content-Type": "application/json",
+                    }
+                };
+                expected = {
+                    "took": 91,
+                    "errors": false,
+                    "items": [{
+                        "index": {
+                            "_index": "applicationlogs",
+                            "_type": "prod",
+                            "_id": "34299932504098067999982349861750949931928054373571100672",
+                            "_version": 4,
+                            "result": "updated",
+                            "_shards": {
+                                "total": 2,
+                                "successful": 2,
+                                "failed": 0
+                            },
+                            "created": false,
+                            "status": 200
+                        }
+                    },
+                    {
+                        "index": {
+                            "_index": "applicationlogs",
+                            "_type": "prod",
+                            "_id": "34299932504098067999982349861750949931928054373571100673",
+                            "_version": 4,
+                            "result": "updated",
+                            "_shards": {
+                                "total": 2,
+                                "successful": 2,
+                                "failed": 0
+                            },
+                            "created": false,
+                            "status": 200
+                        }
+                    },
+                    {
+                        "index": {
+                            "_index": "applicationlogs",
+                            "_type": "prod",
+                            "_id": "34299932504098067999982349861750949931928054373571100674",
+                            "_version": 4,
+                            "result": "updated",
+                            "_shards": {
+                                "total": 2,
+                                "successful": 2,
+                                "failed": 0
+                            },
+                            "created": false,
+                            "status": 200
+                        }
+                    }
+                    ]
+                };
+
+                response = new PassThrough();
+                request = new PassThrough();
+
+            });
+            it("should successfully execute the post function", () => {
+                expected.errors = true;
+                response.write(JSON.stringify(expected));
+                response.end();
+
+                this.request = sinon.stub(https, 'request');
+                this.request.callsArgWith(1, response)
+                    .returns(request);
+
+                let buildRequest = sinon.stub(utils, "buildRequest").returns(payload);
+                index.post(config, "hello world", (error, success, response, failedItems) => {
+
+                    expect(error).to.have.all.keys('statusCode', 'responseBody');
+                    sinon.assert.calledOnce(buildRequest);
+                    sinon.assert.calledOnce(this.request);
+                    this.request.restore();
+                    buildRequest.restore();
+                });
             });
         });
     });

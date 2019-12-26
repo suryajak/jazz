@@ -51,6 +51,7 @@ describe('Login handler', function() {
   * @returns {string} callback function showing error type of badrequest has occured
   */
   it("should throw a BadRequest error for undefined method", function(){
+    
     event.method = undefined;
     var bool = index.handler(event,context,callback).includes("Bad Request") &&
                 index.handler(event,context,callback).includes("100");
