@@ -15,25 +15,41 @@
 // =========================================================================
 
 const expect = require('chai').expect;
-const assert = require('chai').assert;
-//const awsContext = require('aws-lambda-mock-context');
+const awsContext = require('aws-lambda-mock-context');
 const utils = require("../components/utils");
 const index = require("../index");
-var PassThrough = require('stream').PassThrough;
 const configObj = require('../components/config.js');
+var PassThrough = require('stream').PassThrough;
+const sinon = require('sinon');
+var https = require('https');
 
 describe('jazz_cloud-logs-streamer Handler', function () {
+    var err, context, callback, config, input;
     beforeEach(function () {
+        context = awsContext();
+        context.functionName = context.functionName + "-dev";
+        err = {
+            "errorType": "svtfoe",
+            "message": "starco"
+        };
         input = {
-            "awslogs": {
-                "data": ""
+            "Records": [{
+                "kinesis": {
+                    "data": "H4sIAAAAAAAAAKVSy27bMBD8FUIo0IsU8SGJpG4OrAYF6qaw1Usto6CkVaBUr4p03DjIv3ftpuipgINcSHBmhzuz5JPXg7XmDvLHCbzUWy7yxfdVttksbjLP98bDADPCjHJJJY9YIhnC3Xh3M4/7CZnQHGzYmb6sTTjAwU7dfvgR3Jvj0YF1wXkxUxtM81j/UW7cDKZHKadMhVSHXIbbd58WebbJd0klQDOlKpBN1JRVGUfYGU+0gTqpJF5h96Wt5nZy7Th8aDsHs/XS7euM7M5OsgcY3En85LU1GhIR11oLHtOIakUTiSetuIi0SpiMqY6QZZorGkdCilgyRrGKoynX4hyd6XEkLBao5Tgqxbn/d74veQOqAy5zFqdcp1xeYcm3wrGGqkrESVDxxASMgQoUk1WATQwTdcNjxQr3P71PHmAuRwukcO994pPtWN5D5cjtedsVg/fsvy2iuDBi9nlJ1vBzj4Uf65RclOvt7qIL3a2zL7fr/NUG3XI/m9NvS4m60oL0tnDXbddBTf4xaAQJfIEV9OP8SDbtEVLC44SsrhE0v8gL8dXCqbE+46fwu+ffPBUArYUDAAA="
+                }
+            }]
+        };
+        callback = (err, responseObj) => {
+            if (err) {
+                return err;
+            } else {
+                return JSON.stringify(responseObj);
             }
         };
-        //context = awsContext();
-        cb = (value) => {
-            return value;
-        };
+
+        config = configObj.getConfig(input, context);
     });
+
 
     it('should return undefined value when invalid input is passed', function () {
         //xpect(index.handler(input, context, cb)).to.equal(undefined);
@@ -219,15 +235,15 @@ describe('jazz_cloud-logs-streamer Handler', function () {
             });
             it('should return expected bulkBodyRequest for API-Gateway-Execution-Logs', function () {
                 payload.logGroup = ['API-Gateway-Execution-Logs', '/aws/lambda/'];
-                var expectedReturnAPIGatewayToJson = index.transform(payload);
-                var splitArray = expectedReturnAPIGatewayToJson.split("\n");
-                var timeStamp = JSON.parse(splitArray[1]).timestamp;
-                var expectedReturnAPIGateway = "{\"index\":{\"_index\":\"apilogs\",\"_type\":\"\",\"_id\":\"\"}}\n{\"timestamp\":\"" + timeStamp + "\",\"platform_log_group\":[\"API-Gateway-Execution-Logs\",\"/aws/lambda/\"],\"platform_log_stream\":\"\",\"environment\":\"\",\"request_id\":\"\",\"method\":\"GET\",\"domain\":\"\",\"servicename\":\"\",\"path\":\"\",\"application_logs_id\":\"\",\"origin\":\"\",\"host\":\"\",\"user_agent\":\"\",\"x_forwarded_port\":\"\",\"x_forwarded_for\":\"\",\"x_amzn_trace_id\":\"\",\"content_type\":\"\",\"cache_control\":\"\",\"log_level\":\"INFO\",\"status\":\"\"}\n";
-                expect(JSON.stringify(index.transform(payload))).to.equal(JSON.stringify(expectedReturnAPIGateway));
+                var transformFunctionReturn = index.transform(payload);
+                var splitArray = transformFunctionReturn.split("\n");
+                let TestStamp = JSON.parse(splitArray[1]).timestamp;
+                var expectedReturnAPIGateway = "{\"index\":{\"_index\":\"apilogs\",\"_type\":\"\",\"_id\":\"\"}}\n{\"timestamp\":\"" + TestStamp + "\",\"platform_log_group\":[\"API-Gateway-Execution-Logs\",\"/aws/lambda/\"],\"platform_log_stream\":\"\",\"environment\":\"\",\"request_id\":\"\",\"method\":\"GET\",\"domain\":\"\",\"servicename\":\"\",\"path\":\"\",\"application_logs_id\":\"\",\"origin\":\"\",\"host\":\"\",\"user_agent\":\"\",\"x_forwarded_port\":\"\",\"x_forwarded_for\":\"\",\"x_amzn_trace_id\":\"\",\"content_type\":\"\",\"cache_control\":\"\",\"log_level\":\"INFO\",\"status\":\"\"}\n";
+                expect(transformFunctionReturn).to.equal(expectedReturnAPIGateway);
             });
         });
 
-        describe('post', () => {
+        describe('post', function () {
             let payload, expected, response, request, data;
             beforeEach(function () {
                 payload = {
@@ -295,9 +311,8 @@ describe('jazz_cloud-logs-streamer Handler', function () {
 
                 response = new PassThrough();
                 request = new PassThrough();
-
             });
-            it("should successfully execute the post function", () => {
+            it('should successfully execute the post function', () => {
                 expected.errors = true;
                 response.write(JSON.stringify(expected));
                 response.end();
@@ -306,7 +321,7 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                 this.request.callsArgWith(1, response)
                     .returns(request);
 
-                let buildRequest = sinon.stub(utils, "buildRequest").returns(payload);
+                let buildRequest = sinon.stub(index, "buildRequest").returns(payload);
                 index.post(config, "hello world", (error, success, response, failedItems) => {
 
                     expect(error).to.have.all.keys('statusCode', 'responseBody');
