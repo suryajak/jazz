@@ -11,12 +11,12 @@
     "test": "mocha"
   },
   "dependencies": {
-    "aws-lambda-mock-context": "^3.2.1",
-    "sinon": "^6.3.4",
-    "unicode-byte-truncate": "*",
-    "request": "*"
+    "request": "*",
+    "sinon": "^6.3.5",
+    "unicode-byte-truncate": "^1.0.0"
   },
   "devDependencies": {
+    "aws-lambda-mock-context": "^3.2.1",
     "chai": "^3.5.0",
     "mocha": "^v3.0.0"
   }
