@@ -316,7 +316,7 @@ function buildRequest(endpoint, body) {
         datetime,
         credentialString,
         utils.hash(canonicalString, 'hex')
-    ].join('\n');
+    ].join('\n'); 
 
     request.headers.Authorization = [
         'AWS4-HMAC-SHA256 Credential=' + process.env.AWS_ACCESS_KEY_ID + '/' + credentialString,

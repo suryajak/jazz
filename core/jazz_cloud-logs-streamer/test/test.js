@@ -21,7 +21,7 @@ const index = require("../index");
 const configObj = require('../components/config.js');
 const zlib = require('zlib');
 const sinon = require('sinon');
-
+ 
 
 describe('jazz_cloud-logs-streamer Handler', function () {
     var err, context, callback, config, event;
