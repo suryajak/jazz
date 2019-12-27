@@ -49,7 +49,7 @@ describe('jazz_cloud-logs-streamer Handler', function () {
         config = configObj.getConfig(event, context);
     });
     describe('index', () => {
-
+        // tests for handler function in index.js
         describe('handler', function () {
             let postResult;
 
@@ -61,6 +61,14 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                 };
             });
 
+            /* Given an unsupported format, print giving input from the callback function
+            @params {input} defined in beforeEach as a awsLogs:data which will be returned by callback function 
+            @params {context} aws lamba mock context will be passed
+            @params {callback} callback function which return the input json as a string value
+                @params {err, res} input values for callback function
+            @return json input as a stringified json
+            zipStub is used to simulate the zip file which is passed into the function
+            */
             it('should indicate that record is skipped since message is not in supported format (gzip)', () => {
                 let zipStub = sinon.stub(zlib, "gunzip").yields((err, res) => {
                     return callback(err, null);
@@ -71,20 +79,37 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                     expect(res.data).to.eq('{"awslogs":{"data":"sample data"}}');
                     zipStub.restore();
                 });
-                console.log("CONTEXT ERROR: " + context.error);
             });
 
         });
 
+        // tets for buildsource function in index.js
         describe('buildSource', function () {
+            /* Given empty parameters, returns and empty object
+            @params {string} passes a json as a string to the target function
+            @params {JSON} passes a json object to the target function
+            @return {JSON} returns json object
+                if only JSON is passed with empty string {"", JSON}, extracted fields will be return
+                if only string is passed with empty json {"JSON", ""}, JSON object is returned
+                if both parameters are empty strings, return empty JSON object {}
+                if both JSON and string are passed, only return extracted fields
+            */
+
+            //returns empty json object {} since input parameters are empty message and empty extracted fields
+            //uses deep extract for condition to check if both empty JSON's are equal
             it('should return {} for empty message and empty extracted fields', function () {
                 expect(index.buildSource("", "")).to.deep.equal({});
             });
+
+            //passes a json as a string without any extracted fields
+            //return JSON object of parsed json string
             it("should return parsed JSON", function () {
                 var json = '{"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"Service":"cloudtrail.amazonaws.com"},"Action":"sts:AssumeRole"}]}';
                 expect(JSON.stringify(index.buildSource(json, ""))).to.equal(json);
             });
 
+            // passes the extracted values as a JSON objects
+            // returns extracted values as a JSON object with parsed numeric values
             it("should return Extracted fields with key value pairs with no json values", function () {
 
                 var extractedFieldsInputParameter = {
@@ -107,6 +132,9 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                     "$1": "127.0.0.1"
                 });
             });
+
+            // passes the extracted values as a JSON objects
+            // returns extracted values as a JSON object with parsed numeric values and appropriate key value pairs as JSON objects
             it("should return Extracted fields with key value pairs having json values", function () {
 
                 var extractedFieldsInputParameter = {
@@ -135,8 +163,16 @@ describe('jazz_cloud-logs-streamer Handler', function () {
             });
         });
 
+        //tests for transform function in index.js
         describe('transform', function () {
-
+            /* Given a message passed as 'payload', transform function returns bulkrequestdata for the aws elasticsearch
+            @params {JSON} payload is transferred as a JSON object containing:
+                messagType: "string"
+                logGroup: array object
+                logEvents: JSON
+                logStream: "string"
+            @returns bulkrequestdata after processing the given payload
+            */
             beforeEach(function () {
                 payload = {
                     "messageType": 'DATA_MESSAGE',
@@ -156,22 +192,31 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                 };
             })
 
+            // when passing the 'CONTROL_MESSAGE' as payload, transform function returns a null value
             it('should return null value when passing CONTROL_MESSAGE', function () {
                 payload.messageType = "CONTROL_MESSAGE";
                 expect(index.transform(payload)).to.equal(null);
             });
+
+            // when passing an array with neither /aws/lambda/ or API-Gateway-Execution-Logs at index 0, return null
             it('should return null if logGroup[0] is other than /aws/lambda/ or API-Gateway-Execution-Logs', function () {
                 payload.logGroup[0] = "";
                 expect(index.transform(payload)).to.equal(null);
             });
+
+            // when passing an empty log events array in payload, return null
             it('should return null if data.request_id equals empty string', function () {
                 payload.logEvents = [''];
                 expect(index.transform(payload)).to.equal(null);
             });
+
+            // when passing logevents with /aws/lambda/, transform function returns bulkrequestdata containing both action and data information
             it('should return expected bulkBodyRequest for /aws/lambda/', function () {
                 var expectedReturnLamba = "{\"index\":{\"_index\":\"applicationlogs\",\"_type\":\"Logs\",\"_id\":\"34299932504098067999982349861750949931928054373571100672\"}}\n{\"request_id\":\"1f08c356-c26a-11e8-817c-373a13df2581\",\"environment\":\"Logs\",\"servicename\":\",API-Gateway-Execution\",\"platform_log_group\":[\"/aws/lambda/\",\"API-Gateway-Execution-Logs\"],\"platform_log_stream\":\"\",\"timestamp\":\"2018-09-27T15:29:27.822Z\",\"message\":\"2018-09-27T15:29:27.822Z, verbose \\t', , [object Object]\",\"log_level\":\"INFO\"}\n{\"index\":{\"_index\":\"applicationlogs\",\"_type\":\"Logs\",\"_id\":\"34299932504098067999982349861750949931928054373571100673\"}}\n{\"request_id\":\"1f08c356-c26a-11e8-817c-373a13df2581\",\"environment\":\"Logs\",\"servicename\":\",API-Gateway-Execution\",\"platform_log_group\":[\"/aws/lambda/\",\"API-Gateway-Execution-Logs\"],\"platform_log_stream\":\"\",\"timestamp\":\"2018-09-27T15:29:27.822Z\",\"message\":\"END RequestId: 1f08c356-c26a-11e8-817c-373a13df2581\",\"log_level\":\"INFO\"}\n";
                 expect(index.transform(payload)).to.equal(expectedReturnLamba);
             });
+
+            //
             it('should return expected bulkBodyRequest for API-Gateway-Execution-Logs', function () {
                 payload.logGroup = ['API-Gateway-Execution-Logs', '/aws/lambda/'];
                 var transformFunctionReturn = index.transform(payload);
@@ -206,10 +251,7 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                     }
                 };
 
-                config = configObj.getConfig(event, context); ß
-            });
-            it('should successfully execute the post function', () => {
-
+                config = configObj.getConfig(event, context);
             });
         });
 
