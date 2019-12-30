@@ -21,7 +21,8 @@ const index = require("../index");
 const configObj = require('../components/config.js');
 const zlib = require('zlib');
 const sinon = require('sinon');
-
+var PassThrough = require('stream').PassThrough;
+var https = require('https');
 
 describe('jazz_cloud-logs-streamer Handler', function () {
     var err, context, callback, config, event;
@@ -296,6 +297,21 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                 response = new PassThrough();
                 request = new PassThrough();
             });
+
+            it("should successfully execute the post function", () => {
+                expected.errors = true;
+                response.write(JSON.stringify(expected));
+                response.end();
+
+                this.request = sinon.stub(https, 'request');
+                this.request.callsArgWith(1, response)
+                    .returns(request);
+
+                index.post(config, "hello world", (error, success, response, failedItems) => {
+                    expect(error).to.have.all.keys('statusCode', 'responseBody');
+                });
+            })
+
         });
 
         // tests the build request function in index.js
