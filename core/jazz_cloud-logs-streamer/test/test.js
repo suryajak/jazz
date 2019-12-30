@@ -21,7 +21,7 @@ const index = require("../index");
 const configObj = require('../components/config.js');
 const zlib = require('zlib');
 const sinon = require('sinon');
- 
+
 
 describe('jazz_cloud-logs-streamer Handler', function () {
     var err, context, callback, config, event;
@@ -216,7 +216,7 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                 expect(index.transform(payload)).to.equal(expectedReturnLamba);
             });
 
-            //
+            // when passing logevents with API-Gateway-Execution-Logs, transform function returns bulkrequestdata containing the expectedReturnAPIGateway
             it('should return expected bulkBodyRequest for API-Gateway-Execution-Logs', function () {
                 payload.logGroup = ['API-Gateway-Execution-Logs', '/aws/lambda/'];
                 var transformFunctionReturn = index.transform(payload);
@@ -228,34 +228,80 @@ describe('jazz_cloud-logs-streamer Handler', function () {
         });
 
         describe('post', function () {
-            var err, context, callback, config, event;
+            let payload, expected, response, request, data;
             beforeEach(function () {
-                context = awsContext();
-                context.functionName = context.functionName + "-test";
-                err = {
-                    "errorType": "svtfoe",
-                    "message": "starco"
-                };
-                event = {
-                    "Records": [{
-                        "kinesis": {
-                            "data": "H4sIAAAAAAAAAKVSy27bMBD8FUIo0IsU8SGJpG4OrAYF6qaw1Usto6CkVaBUr4p03DjIv3ftpuipgINcSHBmhzuz5JPXg7XmDvLHCbzUWy7yxfdVttksbjLP98bDADPCjHJJJY9YIhnC3Xh3M4/7CZnQHGzYmb6sTTjAwU7dfvgR3Jvj0YF1wXkxUxtM81j/UW7cDKZHKadMhVSHXIbbd58WebbJd0klQDOlKpBN1JRVGUfYGU+0gTqpJF5h96Wt5nZy7Th8aDsHs/XS7euM7M5OsgcY3En85LU1GhIR11oLHtOIakUTiSetuIi0SpiMqY6QZZorGkdCilgyRrGKoynX4hyd6XEkLBao5Tgqxbn/d74veQOqAy5zFqdcp1xeYcm3wrGGqkrESVDxxASMgQoUk1WATQwTdcNjxQr3P71PHmAuRwukcO994pPtWN5D5cjtedsVg/fsvy2iuDBi9nlJ1vBzj4Uf65RclOvt7qIL3a2zL7fr/NUG3XI/m9NvS4m60oL0tnDXbddBTf4xaAQJfIEV9OP8SDbtEVLC44SsrhE0v8gL8dXCqbE+46fwu+ffPBUArYUDAAA="
-                        }
-                    }]
-                };
-                callback = (err, responseObj) => {
-                    if (err) {
-                        return err;
-                    } else {
-                        return JSON.stringify(responseObj);
+                payload = {
+                    "host": config.ES_ENDPOINT,
+                    "method": "POST",
+                    "path": "/_bulk",
+                    "body": "Sample data",
+                    "headers": {
+                        "Content-Type": "application/json",
                     }
                 };
+                expected = {
+                    "took": 91,
+                    "errors": false,
+                    "items": [{
+                        "index": {
+                            "_index": "applicationlogs",
+                            "_type": "prod",
+                            "_id": "34299932504098067999982349861750949931928054373571100672",
+                            "_version": 4,
+                            "result": "updated",
+                            "_shards": {
+                                "total": 2,
+                                "successful": 2,
+                                "failed": 0
+                            },
+                            "created": false,
+                            "status": 200
+                        }
+                    },
+                    {
+                        "index": {
+                            "_index": "applicationlogs",
+                            "_type": "prod",
+                            "_id": "34299932504098067999982349861750949931928054373571100673",
+                            "_version": 4,
+                            "result": "updated",
+                            "_shards": {
+                                "total": 2,
+                                "successful": 2,
+                                "failed": 0
+                            },
+                            "created": false,
+                            "status": 200
+                        }
+                    },
+                    {
+                        "index": {
+                            "_index": "applicationlogs",
+                            "_type": "prod",
+                            "_id": "34299932504098067999982349861750949931928054373571100674",
+                            "_version": 4,
+                            "result": "updated",
+                            "_shards": {
+                                "total": 2,
+                                "successful": 2,
+                                "failed": 0
+                            },
+                            "created": false,
+                            "status": 200
+                        }
+                    }
+                    ]
+                };
 
-                config = configObj.getConfig(event, context);
+                response = new PassThrough();
+                request = new PassThrough();
             });
         });
 
+        // tests the build request function in index.js
         describe('buildRequest', function () {
+            /* Given 
+            */
             it('should successfully return build request payload', () => {
                 expect(index.buildRequest(config.ES_ENDPOINT, "sample text")).to.have.all.keys('host', 'method', 'path', 'body', 'headers');
             });
