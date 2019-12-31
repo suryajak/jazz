@@ -31,7 +31,7 @@ const globalConfig = require("./config/global_config.json"); //Import the Global
 	@version: 1.0
 **/
 
-module.exports.handler = (input, context, cb) => {
+function handler(input, context, cb) {
 
     logger.init(input, context);
     var config = configModule.getConfig(input, context);
@@ -316,7 +316,7 @@ function buildRequest(endpoint, body) {
         datetime,
         credentialString,
         utils.hash(canonicalString, 'hex')
-    ].join('\n');
+    ].join('\n'); 
 
     request.headers.Authorization = [
         'AWS4-HMAC-SHA256 Credential=' + process.env.AWS_ACCESS_KEY_ID + '/' + credentialString,
@@ -327,4 +327,12 @@ function buildRequest(endpoint, body) {
     return request;
 }
 
+var exportable = {
+    handler,
+    buildRequest,
+    buildSource,
+    transform,
+    post
+}
 
+module.exports = exportable;
