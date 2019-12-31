@@ -82,6 +82,18 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                 });
             });
 
+            it('should skip control messages if !elasticsearchBulkdata', () => {
+                let zipStub = sinon.stub(zlib, "gunzip").yields((err, res) => {
+                    return callback(err, null);
+                });
+
+                index.handler(event, context, (err, res) => {
+                    expect(res).to.have.all.keys('data', 'input');
+                    expect(res.data).to.eq('{"awslogs":{"data":"sample data"}}');
+                    zipStub.restore();
+                });
+            });
+
         });
 
         // tets for buildsource function in index.js
@@ -217,6 +229,8 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                 expect(index.transform(payload)).to.equal(expectedReturnLamba);
             });
 
+
+
             // when passing logevents with API-Gateway-Execution-Logs, transform function returns bulkrequestdata containing the expectedReturnAPIGateway
             it('should return expected bulkBodyRequest for API-Gateway-Execution-Logs', function () {
                 payload.logGroup = ['API-Gateway-Execution-Logs', '/aws/lambda/'];
@@ -256,7 +270,7 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                                 "failed": 0
                             },
                             "created": false,
-                            "status": 200
+                            "status": 250
                         }
                     },
                     {
@@ -272,7 +286,7 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                                 "failed": 0
                             },
                             "created": false,
-                            "status": 200
+                            "status": 250
                         }
                     },
                     {
@@ -288,7 +302,7 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                                 "failed": 0
                             },
                             "created": false,
-                            "status": 200
+                            "status": 250
                         }
                     }
                     ]
@@ -298,6 +312,7 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                 request = new PassThrough();
             });
 
+            // tests the post function in index.js
             it("should successfully execute the post function", () => {
                 expected.errors = true;
                 response.write(JSON.stringify(expected));
@@ -311,7 +326,6 @@ describe('jazz_cloud-logs-streamer Handler', function () {
                     expect(error).to.have.all.keys('statusCode', 'responseBody');
                 });
             })
-
         });
 
         // tests the build request function in index.js
