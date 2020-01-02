@@ -41,8 +41,6 @@ var getStageConfig = (event, context) => {
       stage = 'stg';
     } else if (fnName.endsWith('prod')) {
       stage = 'prod';
-    } else {
-      stage = fnName;
     }
   }
 
